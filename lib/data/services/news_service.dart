@@ -1,17 +1,26 @@
 // ============================================================
 // news_service.dart
-// Servicio de noticias usando Google Custom Search API.
-// Busca noticias sobre seguridad privada en Chile.
+// Servicio de noticias que llama al Edge Function de Supabase,
+// el cual actúa como proxy hacia Google Custom Search API.
+//
+// Razón del proxy: los navegadores bloquean peticiones directas
+// a la API de Google por política CORS. El Edge Function las
+// realiza server-side y devuelve la respuesta con las cabeceras
+// CORS correctas.
 // ============================================================
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-/// Configuración de la API de Google Custom Search
-class _NewsApiConfig {
-  static const String apiKey = 'AIzaSyDA0VkjJbHIdMeE6i3CXajfhJPb3-LkzKc';
-  static const String searchEngineId = '11d4bd3ec71264a8e';
-  static const String baseUrl = 'https://www.googleapis.com/customsearch/v1';
+/// Configuración del proxy (Supabase Edge Function)
+class _NewsProxyConfig {
+  /// URL del Edge Function desplegado en Supabase
+  static const String proxyUrl =
+      'https://vxbotzyieemxapqshfgq.supabase.co/functions/v1/news-proxy';
+
+  /// Anon key de Supabase (requerida en el header Authorization)
+  static const String anonKey =
+      'sb_publishable_bpYzMPfOCqOnG2-AmPiJoQ_4RFCIKag';
 
   /// Término de búsqueda por defecto para noticias de seguridad privada
   static const String defaultQuery = 'seguridad privada Chile guardias';
@@ -24,25 +33,25 @@ class NewsService {
   // ----------------------------------------------------------
 
   /// Busca noticias con [query]. Si [query] está vacío, usa el término por defecto.
-  /// Retorna una lista de resultados del API de Google Custom Search.
+  /// Llama al Edge Function de Supabase que actúa como proxy hacia Google.
   Future<List<Map<String, dynamic>>> fetchNews({String? query}) async {
     final searchQuery = (query?.trim().isNotEmpty == true)
         ? query!
-        : _NewsApiConfig.defaultQuery;
+        : _NewsProxyConfig.defaultQuery;
 
-    final uri = Uri.parse(_NewsApiConfig.baseUrl).replace(
-      queryParameters: {
-        'key': _NewsApiConfig.apiKey,
-        'cx': _NewsApiConfig.searchEngineId,
-        'q': searchQuery,
-        'num': '10',       // Máximo de resultados por página
-        'sort': 'date',    // Ordenar por fecha (más recientes primero)
-        'lr': 'lang_es',   // Resultados en español
-        'gl': 'cl',        // Geolocalización: Chile
-      },
+    // Construir URL del proxy con el parámetro de búsqueda
+    final uri = Uri.parse(_NewsProxyConfig.proxyUrl).replace(
+      queryParameters: {'q': searchQuery},
     );
 
-    final response = await http.get(uri);
+    // El Edge Function requiere el anon key en el header Authorization
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer ${_NewsProxyConfig.anonKey}',
+        'Content-Type': 'application/json',
+      },
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Error al cargar noticias (${response.statusCode})');
