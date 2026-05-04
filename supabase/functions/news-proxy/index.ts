@@ -10,7 +10,7 @@
 
 // Credenciales de Google Custom Search (almacenadas server-side)
 const GOOGLE_API_KEY = "AIzaSyDA0VkjJbHIdMeE6i3CXajfhJPb3-LkzKc";
-const GOOGLE_CSE_ID = "11d4bd3ec71264a8e";
+const GOOGLE_CSE_ID = "00e582294d1a54e57";
 const DEFAULT_QUERY = "seguridad privada Chile guardias";
 const GOOGLE_CSE_BASE_URL = "https://www.googleapis.com/customsearch/v1";
 
