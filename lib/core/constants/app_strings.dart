@@ -184,6 +184,8 @@ class AppStrings {
   // ----------------------------------------------------------
   static const String newsNoResults = 'No se encontraron noticias.';
   static const String newsReadMore = 'Leer más';
+  static const String newsReadFullArticle = 'Leer artículo completo';
+  static const String newsSource = 'Fuente';
 
   // ----------------------------------------------------------
   // Foro

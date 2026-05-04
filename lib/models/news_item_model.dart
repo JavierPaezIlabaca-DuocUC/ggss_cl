@@ -10,6 +10,7 @@ class NewsItemModel {
   final String url;
   final String? imageUrl;
   final String source;
+  final DateTime? publishedDate;
 
   const NewsItemModel({
     required this.title,
@@ -17,6 +18,7 @@ class NewsItemModel {
     required this.url,
     this.imageUrl,
     required this.source,
+    this.publishedDate,
   });
 
   // ----------------------------------------------------------
@@ -35,6 +37,22 @@ class NewsItemModel {
       }
     }
 
+    // Extraer fecha de publicación desde metatags (varios formatos posibles)
+    DateTime? publishedDate;
+    if (pagemap != null) {
+      final metatags = pagemap['metatags'] as List<dynamic>?;
+      if (metatags != null && metatags.isNotEmpty) {
+        final meta = metatags.first as Map<String, dynamic>;
+        final rawDate = meta['article:published_time'] as String? ??
+            meta['og:updated_time'] as String? ??
+            meta['date'] as String? ??
+            meta['pubdate'] as String?;
+        if (rawDate != null) {
+          publishedDate = DateTime.tryParse(rawDate);
+        }
+      }
+    }
+
     // Extraer dominio del link como fuente
     final link = map['link'] as String? ?? '';
     String source = '';
@@ -50,6 +68,22 @@ class NewsItemModel {
       url: link,
       imageUrl: imageUrl,
       source: source,
+      publishedDate: publishedDate,
     );
+  }
+
+  // ----------------------------------------------------------
+  // Fecha formateada en español (ej: "12 ene. 2025")
+  // ----------------------------------------------------------
+
+  /// Retorna la fecha formateada en español, o null si no está disponible
+  String? get formattedDate {
+    if (publishedDate == null) return null;
+    const meses = [
+      'ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.',
+      'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.',
+    ];
+    final d = publishedDate!;
+    return '${d.day} ${meses[d.month - 1]} ${d.year}';
   }
 }

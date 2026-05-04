@@ -11,12 +11,10 @@ import 'package:http/http.dart' as http;
 class _NewsApiConfig {
   static const String apiKey = 'AIzaSyDA0VkjJbHIdMeE6i3CXajfhJPb3-LkzKc';
   static const String searchEngineId = '11d4bd3ec71264a8e';
-  static const String baseUrl =
-      'https://www.googleapis.com/customsearch/v1';
+  static const String baseUrl = 'https://www.googleapis.com/customsearch/v1';
 
   /// Término de búsqueda por defecto para noticias de seguridad privada
-  static const String defaultQuery =
-      'guardia seguridad privada Chile OS10';
+  static const String defaultQuery = 'seguridad privada Chile guardias';
 }
 
 /// Servicio de noticias de GGSS.cl
@@ -37,9 +35,10 @@ class NewsService {
         'key': _NewsApiConfig.apiKey,
         'cx': _NewsApiConfig.searchEngineId,
         'q': searchQuery,
-        'num': '10', // Máximo de resultados por página
-        'lr': 'lang_es', // Resultados en español
-        'gl': 'cl', // Geolocalización: Chile
+        'num': '10',       // Máximo de resultados por página
+        'sort': 'date',    // Ordenar por fecha (más recientes primero)
+        'lr': 'lang_es',   // Resultados en español
+        'gl': 'cl',        // Geolocalización: Chile
       },
     );
 
