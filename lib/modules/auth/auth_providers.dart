@@ -221,3 +221,11 @@ final authNotifierProvider =
 final authStateChangesProvider = StreamProvider<AuthState>((ref) {
   return Supabase.instance.client.auth.onAuthStateChange;
 });
+
+/// Provider del usuario actualmente autenticado.
+/// Se invalida automáticamente cuando cambia el estado de sesión.
+final currentUserProvider = Provider<User?>((ref) {
+  // Al observar el stream de auth, este provider se reconstruye en login/logout
+  ref.watch(authStateChangesProvider);
+  return Supabase.instance.client.auth.currentUser;
+});

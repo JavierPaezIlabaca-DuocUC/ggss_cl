@@ -9,9 +9,11 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_strings.dart';
 import '../../shared/widgets/app_header.dart';
+import '../auth/auth_providers.dart';
 
 // Importación de las pantallas principales de cada sección
 import '../jobs/jobs_screen.dart';
@@ -20,22 +22,31 @@ import '../os10/os10_screen.dart';
 import '../news/news_screen.dart';
 import '../forum/forum_screen.dart';
 
-/// Shell principal de navegación de GGSS.cl
-class MainShell extends StatefulWidget {
+// Importación de las pantallas destino de navegación
+import '../profile/profile_screen.dart';
+import '../settings/settings_screen.dart';
+import '../search/search_screen.dart';
+import '../jobs/create_job_screen.dart';
+import '../academic/create_academic_screen.dart';
+import '../forum/create_post_screen.dart';
+
+/// Shell principal de navegación de GGSS.cl.
+/// ConsumerStatefulWidget para acceder al usuario autenticado vía Riverpod.
+class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   // ----------------------------------------------------------
   // Estado: índice de la sección activa (0 = Ofertas laborales)
   // ----------------------------------------------------------
   int _currentSectionIndex = 0;
 
   // ----------------------------------------------------------
-  // Secciones de la app (en el orden de la barra de navegación)
+  // Configuración de secciones
   // ----------------------------------------------------------
 
   /// Títulos de cada sección (mostrados en la fila 2 del header)
@@ -47,7 +58,8 @@ class _MainShellState extends State<MainShell> {
     AppStrings.titleForum,
   ];
 
-  /// Pantallas correspondientes a cada sección
+  /// Pantallas correspondientes a cada sección.
+  /// Se mantienen vivas con IndexedStack para preservar el scroll.
   static const List<Widget> _sectionScreens = [
     JobsScreen(),
     AcademicScreen(),
@@ -74,14 +86,48 @@ class _MainShellState extends State<MainShell> {
   }
 
   // ----------------------------------------------------------
-  // Acción del FAB según la sección activa
+  // Acción del FAB: navega a la pantalla de creación de la sección activa
   // ----------------------------------------------------------
 
   void _onFabPressed() {
-    // TODO(módulos): navegar a la pantalla de creación correspondiente
-    // Módulo 4 (Ofertas laborales): navegar a CreateJobScreen
-    // Módulo 5 (Ofertas académicas): navegar a CreateAcademicScreen
-    // Módulo 8 (Foro): navegar a CreatePostScreen
+    Widget destination;
+
+    switch (_currentSectionIndex) {
+      case 0:
+        destination = const CreateJobScreen();
+      case 1:
+        destination = const CreateAcademicScreen();
+      case 4:
+        destination = const CreatePostScreen();
+      default:
+        return; // Sección sin FAB: no hacer nada
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => destination),
+    );
+  }
+
+  // ----------------------------------------------------------
+  // Navegación a pantallas secundarias (pushed sobre el shell)
+  // ----------------------------------------------------------
+
+  void _navigateToProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+    );
+  }
+
+  void _navigateToSearch() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SearchScreen()),
+    );
+  }
+
+  void _navigateToSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
   }
 
   // ----------------------------------------------------------
@@ -90,18 +136,24 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Obtener URL del avatar del usuario actual (null si no tiene foto)
+    final currentUser = ref.watch(currentUserProvider);
+    final avatarUrl = currentUser?.userMetadata?['avatar_url'] as String?;
+
     final bool showFab = _sectionsWithFab.contains(_currentSectionIndex);
 
     return Scaffold(
       // Header fijo de dos filas
       appBar: AppHeader(
         sectionTitle: _sectionTitles[_currentSectionIndex],
+        userAvatarUrl: avatarUrl,
         onAvatarTap: _navigateToProfile,
         onSearchTap: _navigateToSearch,
         onMenuTap: _navigateToSettings,
       ),
 
-      // Pantalla de la sección activa
+      // Pantalla de la sección activa.
+      // IndexedStack mantiene el estado de cada sección aunque no esté visible.
       body: IndexedStack(
         index: _currentSectionIndex,
         children: _sectionScreens,
@@ -124,7 +176,7 @@ class _MainShellState extends State<MainShell> {
             activeIcon: Icon(Icons.school),
             label: AppStrings.navAcademic,
           ),
-          // 3. Simulador OS10 (central, destacado)
+          // 3. Simulador OS10 (central)
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment_outlined),
             activeIcon: Icon(Icons.assignment),
@@ -145,8 +197,8 @@ class _MainShellState extends State<MainShell> {
         ],
       ),
 
-      // FAB: visible solo en Ofertas, Academia y Foro
-      // Posicionado en la esquina inferior derecha
+      // FAB: visible solo en Ofertas Laborales, Académicas y Foro.
+      // Posicionado en la esquina inferior derecha, alineado con el ícono del Foro.
       floatingActionButton: showFab
           ? FloatingActionButton(
               onPressed: _onFabPressed,
@@ -154,25 +206,7 @@ class _MainShellState extends State<MainShell> {
               child: const Icon(Icons.add),
             )
           : null,
-
-      // Alineación del FAB para que quede sobre el último ícono
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
-  }
-
-  // ----------------------------------------------------------
-  // Métodos de navegación (se implementan con GoRouter en Módulo 3)
-  // ----------------------------------------------------------
-
-  void _navigateToProfile() {
-    // TODO(módulo 9): navegar a ProfileScreen con GoRouter
-  }
-
-  void _navigateToSearch() {
-    // TODO(módulo 11): navegar a SearchScreen con GoRouter
-  }
-
-  void _navigateToSettings() {
-    // TODO(módulo 10): navegar a SettingsScreen con GoRouter
   }
 }
