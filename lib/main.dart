@@ -15,6 +15,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 import 'core/constants/app_colors.dart';
 import 'core/constants/app_strings.dart';
@@ -31,6 +32,9 @@ import 'modules/shell/main_shell.dart';
 Future<void> main() async {
   // Necesario antes de cualquier llamada asíncrona en main()
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Registrar mensajes en español para el paquete timeago
+  timeago.setLocaleMessages('es', timeago.EsMessages());
 
   // Inicializar Supabase con las credenciales del proyecto GGSS.cl
   await Supabase.initialize(

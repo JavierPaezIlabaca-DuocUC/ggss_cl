@@ -178,7 +178,13 @@ class Validators {
   // Validación de campo genérico obligatorio
   // ----------------------------------------------------------
 
-  /// Valida que un campo de texto no esté vacío
+  /// Valida que un campo de texto no esté vacío con mensaje personalizado
+  static String? required(String? value, String message) {
+    if (value == null || value.trim().isEmpty) return message;
+    return null;
+  }
+
+  /// Valida que un campo de texto no esté vacío (mensaje genérico)
   static String? validateRequired(String? value, {String fieldName = 'Campo'}) {
     if (value == null || value.trim().isEmpty) {
       return '$fieldName es obligatorio.';
