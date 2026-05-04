@@ -188,6 +188,28 @@ class AppStrings {
   static const String newsSource = 'Fuente';
 
   // ----------------------------------------------------------
+  // Perfil de usuario
+  // ----------------------------------------------------------
+  static const String profileEdit = 'Editar perfil';
+  static const String profileLogout = 'Cerrar sesión';
+  static const String profileLogoutConfirmTitle = 'Cerrar sesión';
+  static const String profileLogoutConfirmBody =
+      '¿Estás seguro de que deseas cerrar sesión?';
+  static const String profileFullName = 'Nombre completo';
+  static const String profileRut = 'RUT';
+  static const String profileEmail = 'Correo electrónico';
+  static const String profileStats = 'Mis publicaciones';
+  static const String profileJobsPosted = 'Ofertas\nlaborales';
+  static const String profileAcademicPosted = 'Ofertas\nacadémicas';
+  static const String profileForumPosts = 'Posts\nen el foro';
+  static const String profileUpdateSuccess =
+      'Perfil actualizado correctamente.';
+  static const String profileUpdateError =
+      'No se pudo actualizar el perfil. Intenta nuevamente.';
+  static const String profileFullNameHint = 'Ej: Juan Pérez González';
+  static const String profileFullNameRequired = 'El nombre es requerido.';
+
+  // ----------------------------------------------------------
   // Foro
   // ----------------------------------------------------------
   static const String forumCreatePost = 'Nueva publicación';

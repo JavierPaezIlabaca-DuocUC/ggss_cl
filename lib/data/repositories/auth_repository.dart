@@ -7,13 +7,18 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
+import '../services/profile_service.dart';
 
 /// Repositorio de autenticación de GGSS.cl
 class AuthRepository {
   final AuthService _authService;
 
-  AuthRepository({AuthService? authService})
-      : _authService = authService ?? AuthService();
+  /// Se usa para crear el perfil en 'profiles' tras un registro exitoso.
+  final ProfileService _profileService;
+
+  AuthRepository({AuthService? authService, ProfileService? profileService})
+      : _authService = authService ?? AuthService(),
+        _profileService = profileService ?? ProfileService();
 
   // ----------------------------------------------------------
   // Estado de sesión
@@ -46,19 +51,36 @@ class AuthRepository {
     );
   }
 
-  /// Registra un nuevo usuario con nombre completo y RUT chileno
+  /// Registra un nuevo usuario con nombre completo y RUT chileno.
+  /// Tras el registro exitoso crea el perfil en la tabla 'profiles'.
   Future<AuthResponse> signUp({
     required String email,
     required String password,
     required String fullName,
     required String rut,
   }) async {
-    return await _authService.signUpWithEmailAndPassword(
+    final response = await _authService.signUpWithEmailAndPassword(
       email: email,
       password: password,
       fullName: fullName,
       rut: rut,
     );
+
+    // Crear perfil en 'profiles' si el usuario fue creado correctamente.
+    // El error se ignora: si falla, ProfileScreen lo creará al cargar.
+    if (response.user != null) {
+      try {
+        await _profileService.createProfileIfNotExists(
+          response.user!.id,
+          fullName,
+          rut,
+        );
+      } catch (_) {
+        // Fallo silencioso — el perfil se creará en la primera visita al módulo
+      }
+    }
+
+    return response;
   }
 
   /// Envía correo de recuperación de contraseña
