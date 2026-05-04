@@ -1,6 +1,7 @@
 // ============================================================
 // os10_question_model.dart
 // Modelo de pregunta del simulador OS10.
+// Mapea exactamente la tabla 'os10_questions' en Supabase.
 // NOTA: "OS10" siempre sin guión.
 // ============================================================
 
@@ -8,54 +9,62 @@
 class Os10QuestionModel {
   final String id;
 
-  /// Texto de la pregunta
-  final String questionText;
+  /// Texto de la pregunta (columna 'question' en Supabase)
+  final String question;
 
-  /// Lista de 4 alternativas de respuesta
+  /// Las cuatro alternativas: [A, B, C, D]
   final List<String> options;
 
-  /// Índice de la opción correcta (0-3)
-  final int correctOptionIndex;
+  /// Letra de la respuesta correcta: "A", "B", "C" o "D"
+  final String correctAnswer;
 
-  /// Explicación de la respuesta correcta (opcional)
+  /// Categoría temática de la pregunta (Legislación, Funciones, etc.)
+  final String? category;
+
+  /// Explicación de la respuesta correcta
   final String? explanation;
 
   const Os10QuestionModel({
     required this.id,
-    required this.questionText,
+    required this.question,
     required this.options,
-    required this.correctOptionIndex,
+    required this.correctAnswer,
+    this.category,
     this.explanation,
   });
 
+  /// Construye un [Os10QuestionModel] desde un mapa de Supabase
   factory Os10QuestionModel.fromMap(Map<String, dynamic> map) {
-    // Las opciones se guardan como columnas individuales en Supabase:
-    // option_a, option_b, option_c, option_d
-    final options = [
-      map['option_a'] as String? ?? '',
-      map['option_b'] as String? ?? '',
-      map['option_c'] as String? ?? '',
-      map['option_d'] as String? ?? '',
-    ];
-
     return Os10QuestionModel(
       id: map['id'] as String,
-      questionText: map['question_text'] as String? ?? '',
-      options: options,
-      correctOptionIndex: map['correct_option_index'] as int? ?? 0,
+      question: map['question'] as String? ?? '',
+      options: [
+        map['option_a'] as String? ?? '',
+        map['option_b'] as String? ?? '',
+        map['option_c'] as String? ?? '',
+        map['option_d'] as String? ?? '',
+      ],
+      correctAnswer: map['correct_answer'] as String? ?? 'A',
+      category: map['category'] as String?,
       explanation: map['explanation'] as String?,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'question_text': questionText,
-      'option_a': options.isNotEmpty ? options[0] : '',
-      'option_b': options.length > 1 ? options[1] : '',
-      'option_c': options.length > 2 ? options[2] : '',
-      'option_d': options.length > 3 ? options[3] : '',
-      'correct_option_index': correctOptionIndex,
-      'explanation': explanation,
-    };
+  /// Índice (0-3) de la respuesta correcta derivado de la letra
+  int get correctOptionIndex {
+    switch (correctAnswer.toUpperCase()) {
+      case 'B':
+        return 1;
+      case 'C':
+        return 2;
+      case 'D':
+        return 3;
+      default:
+        return 0;
+    }
   }
+
+  /// Retorna true si [answer] es la letra correcta
+  bool isCorrect(String? answer) =>
+      answer?.toUpperCase() == correctAnswer.toUpperCase();
 }
