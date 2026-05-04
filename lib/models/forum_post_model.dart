@@ -8,6 +8,10 @@ class ForumPostModel {
   final String id;
   final String title;
   final String content;
+
+  /// Categoría del post (Laboral, Académico, Consulta, etc.) — opcional
+  final String? category;
+
   final String userId;
 
   /// Nombre del autor (desde join con tabla profiles)
@@ -18,29 +22,46 @@ class ForumPostModel {
 
   final DateTime createdAt;
 
+  /// Cantidad de comentarios (desde count embebido en la consulta)
+  final int commentCount;
+
   const ForumPostModel({
     required this.id,
     required this.title,
     required this.content,
+    this.category,
     required this.userId,
     this.authorName,
     this.authorAvatarUrl,
     required this.createdAt,
+    this.commentCount = 0,
   });
+
+  // ----------------------------------------------------------
+  // Conversión desde respuesta de Supabase
+  // ----------------------------------------------------------
 
   factory ForumPostModel.fromMap(Map<String, dynamic> map) {
     // Extraer datos del autor desde el join con profiles
     final profiles = map['profiles'] as Map<String, dynamic>?;
 
+    // Extraer el conteo de comentarios embebido en la consulta
+    final commentsData = map['forum_comments'] as List<dynamic>?;
+    final commentCount = commentsData != null && commentsData.isNotEmpty
+        ? (commentsData.first as Map<String, dynamic>)['count'] as int? ?? 0
+        : 0;
+
     return ForumPostModel(
       id: map['id'] as String,
       title: map['title'] as String? ?? '',
       content: map['content'] as String? ?? '',
+      category: map['category'] as String?,
       userId: map['user_id'] as String? ?? '',
       authorName: profiles?['full_name'] as String?,
       authorAvatarUrl: profiles?['avatar_url'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
+      commentCount: commentCount,
     );
   }
 
@@ -48,6 +69,7 @@ class ForumPostModel {
     return {
       'title': title,
       'content': content,
+      if (category != null && category!.isNotEmpty) 'category': category,
       'user_id': userId,
     };
   }

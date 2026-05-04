@@ -3,8 +3,8 @@
 // Repositorio del foro comunitario.
 // ============================================================
 
-import '../../models/forum_post_model.dart';
 import '../../models/forum_comment_model.dart';
+import '../../models/forum_post_model.dart';
 import '../services/forum_service.dart';
 
 /// Repositorio del foro comunitario de GGSS.cl
@@ -14,16 +14,14 @@ class ForumRepository {
   ForumRepository({ForumService? forumService})
       : _forumService = forumService ?? ForumService();
 
+  // ----------------------------------------------------------
+  // Posts
+  // ----------------------------------------------------------
+
   /// Retorna todos los posts del foro
   Future<List<ForumPostModel>> getAllPosts() async {
     final data = await _forumService.fetchAllPosts();
     return data.map(ForumPostModel.fromMap).toList();
-  }
-
-  /// Retorna un post por su [id]
-  Future<ForumPostModel?> getPostById(String id) async {
-    final data = await _forumService.fetchPostById(id);
-    return data != null ? ForumPostModel.fromMap(data) : null;
   }
 
   /// Crea un nuevo post en el foro
@@ -35,6 +33,10 @@ class ForumRepository {
   Future<void> deletePost(String id) async {
     await _forumService.deletePost(id);
   }
+
+  // ----------------------------------------------------------
+  // Comentarios
+  // ----------------------------------------------------------
 
   /// Retorna los comentarios de un post
   Future<List<ForumCommentModel>> getCommentsByPostId(String postId) async {

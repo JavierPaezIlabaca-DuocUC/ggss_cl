@@ -196,4 +196,21 @@ class AppStrings {
   static const String forumComments = 'Comentarios';
   static const String forumNoComments = 'Sé el primero en comentar.';
   static const String forumReply = 'Responder';
+  static const String forumAnonymous = 'Usuario';
+  static const String forumTitleLabel = 'Título';
+  static const String forumTitleHint = 'Título de la publicación';
+  static const String forumContentLabel = 'Contenido';
+  static const String forumContentHint = 'Escribe tu publicación aquí...';
+  static const String forumCategoryLabel = 'Categoría (opcional)';
+  static const String forumCategoryHint = 'Ej: Laboral, Consulta, Experiencia...';
+  static const String forumPublish = 'Publicar';
+  static const String forumCommentHint = 'Escribe un comentario...';
+  static const String forumDeletePost = 'Eliminar publicación';
+  static const String forumDeletePostConfirm =
+      '¿Estás seguro de que deseas eliminar esta publicación? '
+      'Esta acción no se puede deshacer.';
+  static const String forumDeleteComment = 'Eliminar comentario';
+  static const String forumDeleteCommentConfirm =
+      '¿Estás seguro de que deseas eliminar este comentario? '
+      'Esta acción no se puede deshacer.';
 }

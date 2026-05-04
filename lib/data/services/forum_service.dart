@@ -18,23 +18,17 @@ class ForumService {
   // Posts del foro
   // ----------------------------------------------------------
 
-  /// Obtiene todos los posts del foro, más reciente primero
+  /// Obtiene todos los posts del foro, más reciente primero.
+  /// Incluye el nombre del autor (join con profiles) y el
+  /// conteo de comentarios embebido.
   Future<List<Map<String, dynamic>>> fetchAllPosts() async {
     final response = await _client
         .from(_tableForumPosts)
-        .select('*, profiles(full_name, avatar_url)')
+        .select(
+          '*, profiles(full_name, avatar_url), forum_comments(count)',
+        )
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
-  }
-
-  /// Obtiene un post por su [id] incluyendo comentarios
-  Future<Map<String, dynamic>?> fetchPostById(String id) async {
-    final response = await _client
-        .from(_tableForumPosts)
-        .select('*, profiles(full_name, avatar_url)')
-        .eq('id', id)
-        .maybeSingle();
-    return response;
   }
 
   /// Crea un nuevo post en el foro
@@ -42,7 +36,7 @@ class ForumService {
     await _client.from(_tableForumPosts).insert(postData);
   }
 
-  /// Elimina un post del foro (solo el autor puede eliminar)
+  /// Elimina un post del foro (RLS garantiza que solo el autor puede hacerlo)
   Future<void> deletePost(String id) async {
     await _client.from(_tableForumPosts).delete().eq('id', id);
   }
@@ -51,7 +45,8 @@ class ForumService {
   // Comentarios del foro
   // ----------------------------------------------------------
 
-  /// Obtiene todos los comentarios de un post con [postId]
+  /// Obtiene todos los comentarios de un post con [postId],
+  /// ordenados del más antiguo al más reciente.
   Future<List<Map<String, dynamic>>> fetchCommentsByPostId(
     String postId,
   ) async {
@@ -68,7 +63,7 @@ class ForumService {
     await _client.from(_tableForumComments).insert(commentData);
   }
 
-  /// Elimina un comentario del foro
+  /// Elimina un comentario del foro (RLS garantiza que solo el autor puede hacerlo)
   Future<void> deleteComment(String id) async {
     await _client.from(_tableForumComments).delete().eq('id', id);
   }
