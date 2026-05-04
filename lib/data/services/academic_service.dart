@@ -13,7 +13,7 @@ const String _tableAcademicOffers = 'academic_offers';
 class AcademicService {
   final _client = SupabaseClientProvider.client;
 
-  /// Obtiene todas las ofertas académicas ordenadas por fecha
+  /// Obtiene todas las ofertas académicas ordenadas por fecha (más reciente primero)
   Future<List<Map<String, dynamic>>> fetchAllAcademicOffers() async {
     final response = await _client
         .from(_tableAcademicOffers)
@@ -32,12 +32,12 @@ class AcademicService {
     return response;
   }
 
-  /// Crea una nueva oferta académica
+  /// Crea una nueva oferta académica con los datos de [offerData]
   Future<void> createAcademicOffer(Map<String, dynamic> offerData) async {
     await _client.from(_tableAcademicOffers).insert(offerData);
   }
 
-  /// Actualiza una oferta académica existente
+  /// Actualiza una oferta académica existente con [id]
   Future<void> updateAcademicOffer(
     String id,
     Map<String, dynamic> offerData,
@@ -45,7 +45,7 @@ class AcademicService {
     await _client.from(_tableAcademicOffers).update(offerData).eq('id', id);
   }
 
-  /// Elimina una oferta académica
+  /// Elimina la oferta académica con [id]
   Future<void> deleteAcademicOffer(String id) async {
     await _client.from(_tableAcademicOffers).delete().eq('id', id);
   }
