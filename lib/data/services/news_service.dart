@@ -1,30 +1,25 @@
 // ============================================================
 // news_service.dart
-// Servicio de noticias que llama al Edge Function de Supabase,
-// el cual actúa como proxy hacia Google Custom Search API.
+// Servicio de noticias que llama al Edge Function de Supabase
+// (news-proxy) usando el cliente oficial supabase_flutter.
 //
-// Razón del proxy: los navegadores bloquean peticiones directas
-// a la API de Google por política CORS. El Edge Function las
-// realiza server-side y devuelve la respuesta con las cabeceras
-// CORS correctas.
+// Por qué usar functions.invoke() en lugar de http.get():
+//   El Edge Function requiere un JWT válido en Authorization.
+//   El cliente de Supabase Flutter inyecta automáticamente el JWT
+//   de la sesión activa del usuario, que sí es un JWT válido.
+//   Una llamada raw con el anon key nuevo (sb_publishable_...) falla
+//   porque ese formato no es un JWT — el runtime lo rechaza con 401.
 // ============================================================
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Configuración del proxy (Supabase Edge Function)
-class _NewsProxyConfig {
-  /// URL del Edge Function desplegado en Supabase
-  static const String proxyUrl =
-      'https://vxbotzyieemxapqshfgq.supabase.co/functions/v1/news-proxy';
+import '../supabase/supabase_client.dart';
 
-  /// Anon key de Supabase (requerida en el header Authorization)
-  static const String anonKey =
-      'sb_publishable_bpYzMPfOCqOnG2-AmPiJoQ_4RFCIKag';
+/// Nombre del Edge Function proxy desplegado en Supabase
+const _kFunctionName = 'news-proxy';
 
-  /// Término de búsqueda por defecto para noticias de seguridad privada
-  static const String defaultQuery = 'seguridad privada Chile guardias';
-}
+/// Término de búsqueda por defecto para noticias de seguridad privada
+const _kDefaultQuery = 'seguridad privada Chile guardias';
 
 /// Servicio de noticias de GGSS.cl
 class NewsService {
@@ -32,32 +27,25 @@ class NewsService {
   // Búsqueda de noticias
   // ----------------------------------------------------------
 
-  /// Busca noticias con [query]. Si [query] está vacío, usa el término por defecto.
-  /// Llama al Edge Function de Supabase que actúa como proxy hacia Google.
+  /// Llama al Edge Function news-proxy con [query].
+  /// Si [query] está vacío, usa el término por defecto.
+  /// Retorna la lista de items de Google Custom Search.
   Future<List<Map<String, dynamic>>> fetchNews({String? query}) async {
-    final searchQuery = (query?.trim().isNotEmpty == true)
-        ? query!
-        : _NewsProxyConfig.defaultQuery;
+    final searchQuery =
+        (query?.trim().isNotEmpty == true) ? query! : _kDefaultQuery;
 
-    // Construir URL del proxy con el parámetro de búsqueda
-    final uri = Uri.parse(_NewsProxyConfig.proxyUrl).replace(
+    // Llamar al Edge Function usando el cliente Supabase.
+    // El SDK inyecta automáticamente el JWT de la sesión activa,
+    // que es el token válido que el Edge Function requiere.
+    final FunctionResponse response =
+        await SupabaseClientProvider.client.functions.invoke(
+      _kFunctionName,
+      method: HttpMethod.get,
       queryParameters: {'q': searchQuery},
     );
 
-    // El Edge Function requiere el anon key en el header Authorization
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer ${_NewsProxyConfig.anonKey}',
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Error al cargar noticias (${response.statusCode})');
-    }
-
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    // response.data ya viene parseado como Map<String, dynamic>
+    final data = response.data as Map<String, dynamic>? ?? {};
     final items = data['items'] as List<dynamic>? ?? [];
 
     return items.cast<Map<String, dynamic>>();
