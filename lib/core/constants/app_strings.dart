@@ -60,6 +60,38 @@ class AppStrings {
   static const String authRecoveryEmailSent =
       'Revisa tu correo para recuperar tu contraseña.';
 
+  // Campos de registro
+  static const String authRut = 'RUT';
+  static const String authRutHint = '12.345.678-9';
+  static const String authRutHelper = 'Ingresa tu RUT con puntos y guión';
+  static const String authFullNameHint = 'Ej: Juan Pérez González';
+  static const String authConfirmPasswordHint = 'Repite tu contraseña';
+  static const String authRegisterTitle = 'Crear cuenta en GGSS.cl';
+  static const String authLoginTitle = 'Bienvenido a GGSS.cl';
+  static const String authLoginSubtitle = 'Inicia sesión para continuar';
+  static const String authRegisterSubtitle =
+      'Regístrate para acceder a todas las funciones';
+  static const String authForgotPasswordTitle = 'Recuperar contraseña';
+  static const String authForgotPasswordSubtitle =
+      'Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.';
+  static const String authRecoverySuccessTitle = '¡Correo enviado!';
+  static const String authRecoverySuccessBody =
+      'Revisa tu bandeja de entrada y sigue el enlace para crear una nueva contraseña. '
+      'Si no lo encuentras, revisa la carpeta de spam.';
+  static const String authBackToLogin = 'Volver al inicio de sesión';
+
+  // Mensajes de error de autenticación (traducidos del inglés de Supabase)
+  static const String authErrorInvalidCredentials =
+      'Correo o contraseña incorrectos.';
+  static const String authErrorEmailAlreadyRegistered =
+      'Este correo ya está registrado. Intenta iniciar sesión.';
+  static const String authErrorEmailNotConfirmed =
+      'Debes confirmar tu correo antes de iniciar sesión.';
+  static const String authErrorWeakPassword =
+      'La contraseña es muy débil. Usa al menos 6 caracteres.';
+  static const String authErrorTooManyRequests =
+      'Demasiados intentos. Espera unos minutos antes de reintentar.';
+
   // ----------------------------------------------------------
   // Búsqueda
   // ----------------------------------------------------------

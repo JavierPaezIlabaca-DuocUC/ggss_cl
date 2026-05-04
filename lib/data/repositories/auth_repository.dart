@@ -1,8 +1,7 @@
 // ============================================================
 // auth_repository.dart
-// Repositorio de autenticación: actúa como intermediario entre
-// los módulos de UI y AuthService.
-// Encapsula la lógica de negocio relacionada con autenticación.
+// Repositorio de autenticación: intermediario entre la UI
+// y AuthService. Encapsula la lógica de negocio de auth.
 // ============================================================
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,14 +15,25 @@ class AuthRepository {
   AuthRepository({AuthService? authService})
       : _authService = authService ?? AuthService();
 
-  /// Usuario actualmente autenticado
+  // ----------------------------------------------------------
+  // Estado de sesión
+  // ----------------------------------------------------------
+
+  /// Usuario actualmente autenticado (null si no hay sesión)
   User? get currentUser => _authService.currentUser;
 
+  /// Método explícito para obtener el usuario actual
+  User? getCurrentUser() => _authService.getCurrentUser();
+
   /// Stream de cambios en el estado de autenticación
-  Stream<AuthState> get authStateChanges => _authService.authStateChanges;
+  Stream<AuthState> get authStateChanges => _authService.onAuthStateChange;
 
   /// Indica si hay un usuario con sesión activa
   bool get isAuthenticated => currentUser != null;
+
+  // ----------------------------------------------------------
+  // Operaciones de auth
+  // ----------------------------------------------------------
 
   /// Inicia sesión con correo y contraseña
   Future<AuthResponse> signIn({
@@ -36,16 +46,18 @@ class AuthRepository {
     );
   }
 
-  /// Registra un nuevo usuario
+  /// Registra un nuevo usuario con nombre completo y RUT chileno
   Future<AuthResponse> signUp({
     required String email,
     required String password,
     required String fullName,
+    required String rut,
   }) async {
     return await _authService.signUpWithEmailAndPassword(
       email: email,
       password: password,
       fullName: fullName,
+      rut: rut,
     );
   }
 

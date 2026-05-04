@@ -1,28 +1,35 @@
 // ============================================================
 // main.dart
 // Punto de entrada de GGSS.cl.
+//
 // Responsabilidades:
 //   1. Inicializar Supabase antes de arrancar la app
 //   2. Configurar Riverpod como gestor de estado global
 //   3. Aplicar los temas claro y oscuro desde AppTheme
-//   4. Mostrar el shell principal de navegación
+//   4. Escuchar el estado de autenticación para enrutar al usuario:
+//        - Sesión activa → MainShell (app principal)
+//        - Sin sesión     → LoginScreen
+//        - Verificando    → SplashScreen (pantalla de carga)
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/constants/app_colors.dart';
 import 'core/constants/app_strings.dart';
 import 'core/constants/supabase_config.dart';
 import 'core/theme/app_theme.dart';
+import 'modules/auth/auth_providers.dart';
+import 'modules/auth/login_screen.dart';
 import 'modules/shell/main_shell.dart';
 
 // ----------------------------------------------------------
-// Punto de entrada: inicializa Supabase y arranca la app
+// Punto de entrada: inicializar dependencias y arrancar la app
 // ----------------------------------------------------------
 
 Future<void> main() async {
-  // Necesario antes de cualquier operación asíncrona en main()
+  // Necesario antes de cualquier llamada asíncrona en main()
   WidgetsFlutterBinding.ensureInitialized();
 
   // Inicializar Supabase con las credenciales del proyecto GGSS.cl
@@ -31,7 +38,7 @@ Future<void> main() async {
     anonKey: SupabaseConfig.anonKey,
   );
 
-  // Envolver la app con ProviderScope para habilitar Riverpod
+  // Envolver con ProviderScope para activar Riverpod en toda la app
   runApp(
     const ProviderScope(
       child: GgssApp(),
@@ -40,20 +47,21 @@ Future<void> main() async {
 }
 
 // ----------------------------------------------------------
-// Widget raíz de la aplicación
+// Widget raíz: escucha autenticación y decide qué mostrar
 // ----------------------------------------------------------
 
 /// Widget raíz de GGSS.cl
-class GgssApp extends StatelessWidget {
+/// Extiende ConsumerWidget para poder leer proveedores de Riverpod
+class GgssApp extends ConsumerWidget {
   const GgssApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      // Nombre de la app (se muestra en la barra de tareas del SO)
-      title: AppStrings.appName,
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Escuchar el stream de cambios de autenticación de Supabase
+    final authStateAsync = ref.watch(authStateChangesProvider);
 
-      // Desactivar el banner de debug
+    return MaterialApp(
+      title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
 
       // Tema claro: fondo blanco, acentos azules
@@ -62,13 +70,76 @@ class GgssApp extends StatelessWidget {
       // Tema oscuro: fondo gris oscuro, acentos azules
       darkTheme: AppTheme.darkTheme,
 
-      // Seguir el tema del sistema operativo por defecto
-      // (se puede sobrescribir desde SettingsScreen en Módulo 10)
+      // Respetar el tema del sistema (configurable en Módulo 10 — Settings)
       themeMode: ThemeMode.system,
 
-      // Pantalla inicial: shell con navegación inferior
-      // TODO(módulo 2): reemplazar con router que verifica autenticación
-      home: const MainShell(),
+      // ----------------------------------------------------------
+      // Pantalla inicial: determinada por el estado de autenticación
+      // ----------------------------------------------------------
+      home: authStateAsync.when(
+        // Estado de carga: verificando si hay sesión activa
+        loading: () => const _SplashScreen(),
+
+        // Error del stream: redirigir a login por seguridad
+        error: (error, stack) => const LoginScreen(),
+
+        // Estado conocido: decidir según la sesión activa
+        data: (authState) {
+          // Si hay sesión activa, mostrar el shell principal de la app
+          if (authState.session != null) {
+            return const MainShell();
+          }
+          // Si no hay sesión, mostrar la pantalla de inicio de sesión
+          return const LoginScreen();
+        },
+      ),
+    );
+  }
+}
+
+// ----------------------------------------------------------
+// Pantalla de splash / carga inicial
+// ----------------------------------------------------------
+
+/// Pantalla de carga que se muestra mientras Supabase verifica la sesión.
+/// Se reemplaza automáticamente en cuanto se conoce el estado de auth.
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AppColors.primaryBlue,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Logo de la app
+            Icon(
+              Icons.security,
+              color: Colors.white,
+              size: 72,
+            ),
+            SizedBox(height: 24),
+            // Nombre de la app
+            Text(
+              AppStrings.appName,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+            SizedBox(height: 48),
+            // Indicador de carga
+            CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2.5,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
