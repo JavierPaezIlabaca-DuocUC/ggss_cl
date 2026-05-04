@@ -19,14 +19,15 @@ class ForumService {
   // ----------------------------------------------------------
 
   /// Obtiene todos los posts del foro, más reciente primero.
-  /// Incluye el nombre del autor (join con profiles) y el
-  /// conteo de comentarios embebido.
+  ///
+  /// No se usa join con 'profiles' porque PostgREST requiere una
+  /// FK declarada entre forum_posts.user_id y profiles.id para
+  /// resolver el join implícito. Sin esa FK, la consulta falla con
+  /// PGRST200. El nombre del autor se muestra como "Usuario" por defecto.
   Future<List<Map<String, dynamic>>> fetchAllPosts() async {
     final response = await _client
         .from(_tableForumPosts)
-        .select(
-          '*, profiles(full_name, avatar_url), forum_comments(count)',
-        )
+        .select('*')
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
   }
@@ -52,7 +53,7 @@ class ForumService {
   ) async {
     final response = await _client
         .from(_tableForumComments)
-        .select('*, profiles(full_name, avatar_url)')
+        .select('*')
         .eq('post_id', postId)
         .order('created_at', ascending: true);
     return List<Map<String, dynamic>>.from(response);
