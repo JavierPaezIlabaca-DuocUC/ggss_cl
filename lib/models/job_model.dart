@@ -17,6 +17,10 @@ class JobModel {
   final double? latitude;
   final double? longitude;
   final String createdBy;
+
+  /// Nombre del autor (desde join con tabla profiles vía created_by)
+  final String? authorName;
+
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -32,12 +36,16 @@ class JobModel {
     this.latitude,
     this.longitude,
     required this.createdBy,
+    this.authorName,
     required this.createdAt,
     this.updatedAt,
   });
 
   /// Construye un [JobModel] desde un mapa de Supabase
   factory JobModel.fromMap(Map<String, dynamic> map) {
+    // Extraer nombre del autor desde join con profiles
+    final profiles = map['profiles'] as Map<String, dynamic>?;
+
     return JobModel(
       id: map['id'] as String,
       title: map['title'] as String? ?? '',
@@ -50,6 +58,7 @@ class JobModel {
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
       createdBy: map['created_by'] as String? ?? '',
+      authorName: profiles?['full_name'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
       updatedAt: map['updated_at'] != null

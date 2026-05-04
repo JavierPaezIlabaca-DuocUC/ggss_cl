@@ -13,20 +13,22 @@ const String _tableAcademicOffers = 'academic_offers';
 class AcademicService {
   final _client = SupabaseClientProvider.client;
 
-  /// Obtiene todas las ofertas académicas ordenadas por fecha (más reciente primero)
+  /// Obtiene todas las ofertas académicas ordenadas por fecha (más reciente primero).
+  /// Incluye el nombre del autor vía join con 'profiles' (FK: created_by).
   Future<List<Map<String, dynamic>>> fetchAllAcademicOffers() async {
     final response = await _client
         .from(_tableAcademicOffers)
-        .select()
+        .select('*, profiles!created_by(full_name)')
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Obtiene una oferta académica por su [id]
+  /// Obtiene una oferta académica por su [id].
+  /// Incluye el nombre del autor vía join con 'profiles' (FK: created_by).
   Future<Map<String, dynamic>?> fetchAcademicOfferById(String id) async {
     final response = await _client
         .from(_tableAcademicOffers)
-        .select()
+        .select('*, profiles!created_by(full_name)')
         .eq('id', id)
         .maybeSingle();
     return response;

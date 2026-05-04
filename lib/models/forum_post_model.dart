@@ -12,6 +12,7 @@ class ForumPostModel {
   /// Categoría del post (Laboral, Académico, Consulta, etc.) — opcional
   final String? category;
 
+  /// UUID del usuario autor (columna 'created_by' en Supabase)
   final String userId;
 
   /// Nombre del autor (desde join con tabla profiles)
@@ -56,7 +57,7 @@ class ForumPostModel {
       title: map['title'] as String? ?? '',
       content: map['content'] as String? ?? '',
       category: map['category'] as String?,
-      userId: map['user_id'] as String? ?? '',
+      userId: map['created_by'] as String? ?? '',
       authorName: profiles?['full_name'] as String?,
       authorAvatarUrl: profiles?['avatar_url'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
@@ -70,7 +71,7 @@ class ForumPostModel {
       'title': title,
       'content': content,
       if (category != null && category!.isNotEmpty) 'category': category,
-      'user_id': userId,
+      'created_by': userId,
     };
   }
 }

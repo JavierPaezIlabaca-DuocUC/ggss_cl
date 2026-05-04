@@ -16,6 +16,10 @@ class AcademicOfferModel {
   final String? contactWhatsapp;
   final String? url;
   final String createdBy;
+
+  /// Nombre del autor (desde join con tabla profiles vía created_by)
+  final String? authorName;
+
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -30,12 +34,16 @@ class AcademicOfferModel {
     this.contactWhatsapp,
     this.url,
     required this.createdBy,
+    this.authorName,
     required this.createdAt,
     this.updatedAt,
   });
 
   /// Construye un [AcademicOfferModel] desde un mapa de Supabase
   factory AcademicOfferModel.fromMap(Map<String, dynamic> map) {
+    // Extraer nombre del autor desde join con profiles
+    final profiles = map['profiles'] as Map<String, dynamic>?;
+
     return AcademicOfferModel(
       id: map['id'] as String,
       title: map['title'] as String? ?? '',
@@ -47,6 +55,7 @@ class AcademicOfferModel {
       contactWhatsapp: map['contact_whatsapp'] as String?,
       url: map['url'] as String?,
       createdBy: map['created_by'] as String? ?? '',
+      authorName: profiles?['full_name'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
       updatedAt: map['updated_at'] != null

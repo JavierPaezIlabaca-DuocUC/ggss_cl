@@ -8,6 +8,8 @@ class ForumCommentModel {
   final String id;
   final String postId;
   final String content;
+
+  /// UUID del usuario autor (columna 'created_by' en Supabase)
   final String userId;
 
   /// Nombre del autor del comentario
@@ -35,7 +37,7 @@ class ForumCommentModel {
       id: map['id'] as String,
       postId: map['post_id'] as String? ?? '',
       content: map['content'] as String? ?? '',
-      userId: map['user_id'] as String? ?? '',
+      userId: map['created_by'] as String? ?? '',
       authorName: profiles?['full_name'] as String?,
       authorAvatarUrl: profiles?['avatar_url'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
@@ -47,7 +49,7 @@ class ForumCommentModel {
     return {
       'post_id': postId,
       'content': content,
-      'user_id': userId,
+      'created_by': userId,
     };
   }
 }
