@@ -3,6 +3,9 @@
 // Pantalla de resultados del Simulador OS10.
 // Muestra el puntaje final, mensaje de aprobación o reprobación,
 // listado de preguntas con resultado, y botones de acción.
+//
+// Nota de aprobación: 60% o más (umbral real del examen OS10).
+// Al mostrar resultados, elimina cualquier examen pausado guardado.
 // ============================================================
 
 import 'dart:convert';
@@ -17,9 +20,8 @@ import '../../core/constants/app_strings.dart';
 import '../../models/os10_question_model.dart';
 import 'os10_providers.dart';
 
-// Claves de almacenamiento local (deben coincidir con os10_screen.dart)
-const String _keyBestScore = 'os10_best_score_percent';
-const String _keyHistory = 'os10_exam_history';
+/// Umbral de aprobación: 60% de respuestas correctas
+const int _kPassPercent = 60;
 
 /// Pantalla de resultados del examen OS10
 class Os10ResultsScreen extends ConsumerStatefulWidget {
@@ -54,7 +56,8 @@ class _Os10ResultsScreenState extends ConsumerState<Os10ResultsScreen> {
   }
 
   // ----------------------------------------------------------
-  // Calcula el puntaje y persiste en SharedPreferences
+  // Calcula el puntaje, persiste en SharedPreferences y limpia el
+  // examen guardado (si había uno pausado)
   // ----------------------------------------------------------
 
   Future<void> _calculateAndSave() async {
@@ -66,7 +69,7 @@ class _Os10ResultsScreenState extends ConsumerState<Os10ResultsScreen> {
       }
     }
     final percent = total > 0 ? ((correct / total) * 100).round() : 0;
-    final passed = percent >= 70;
+    final passed = percent >= _kPassPercent;
 
     setState(() {
       _correct = correct;
@@ -75,17 +78,16 @@ class _Os10ResultsScreenState extends ConsumerState<Os10ResultsScreen> {
       _passed = passed;
     });
 
-    // Guardar en SharedPreferences
     final prefs = await SharedPreferences.getInstance();
 
     // Actualizar mejor puntaje si supera al anterior
-    final bestScore = prefs.getInt(_keyBestScore) ?? 0;
+    final bestScore = prefs.getInt(kOs10KeyBestScore) ?? 0;
     if (percent > bestScore) {
-      await prefs.setInt(_keyBestScore, percent);
+      await prefs.setInt(kOs10KeyBestScore, percent);
     }
 
     // Agregar entrada al historial
-    final historyJson = prefs.getString(_keyHistory);
+    final historyJson = prefs.getString(kOs10KeyHistory);
     List<Map<String, dynamic>> history = [];
     if (historyJson != null) {
       try {
@@ -99,10 +101,12 @@ class _Os10ResultsScreenState extends ConsumerState<Os10ResultsScreen> {
       'total': total,
       'date': DateTime.now().toIso8601String(),
     });
-    await prefs.setString(_keyHistory, jsonEncode(history));
+    await prefs.setString(kOs10KeyHistory, jsonEncode(history));
 
-    // Invalidar el proveedor de estadísticas para que Os10Screen
-    // recargue los datos actualizados en cuanto vuelva a ser visible.
+    // Eliminar examen pausado — ya no es relevante
+    await prefs.remove(kOs10KeySavedExam);
+
+    // Refrescar estadísticas para que Os10Screen muestre datos actualizados
     if (mounted) {
       ref.read(os10StatsProvider.notifier).refresh();
     }
@@ -112,7 +116,7 @@ class _Os10ResultsScreenState extends ConsumerState<Os10ResultsScreen> {
   // Acciones de navegación
   // ----------------------------------------------------------
 
-  /// Retorna 'repeat' a Os10Screen para que inicie otro examen
+  /// Retorna 'repeat' a Os10Screen para que el usuario elija una modalidad nueva
   void _repeatExam() => Navigator.of(context).pop('repeat');
 
   /// Retorna normalmente (sin resultado) a Os10Screen
@@ -126,9 +130,10 @@ class _Os10ResultsScreenState extends ConsumerState<Os10ResultsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scoreColor = _passed ? AppColors.success : AppColors.error;
+
     final scoreMessage = _passed
         ? '¡Aprobado! Estás listo para el examen real.'
-        : 'Necesitas seguir practicando. ¡Tú puedes!';
+        : 'Necesitas seguir practicando. ¡Ánimo, tú puedes!';
     final scoreIcon =
         _passed ? Icons.check_circle_rounded : Icons.cancel_rounded;
 
@@ -169,6 +174,14 @@ class _Os10ResultsScreenState extends ConsumerState<Os10ResultsScreen> {
                   Text(
                     '$_correct de $_total correctas',
                     style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppDimensions.spacingXs),
+                  // Indicador visual del umbral de aprobación
+                  Text(
+                    'Nota mínima para aprobar: $_kPassPercent%',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scoreColor.withValues(alpha: 0.8),
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.spacingSm),
                   Text(
@@ -248,14 +261,20 @@ class _QuestionResultTile extends StatelessWidget {
     final color = isCorrect ? AppColors.success : AppColors.error;
     final icon = isCorrect ? Icons.check_circle_outline : Icons.cancel_outlined;
 
+    // Etiquetas legibles para respuestas V/F
+    final correctLabel =
+        question.correctAnswer == 'V' ? 'Verdadero' : 'Falso';
+    final userLabel = userAnswer == null
+        ? null
+        : (userAnswer == 'V' ? 'Verdadero' : 'Falso');
+
     final String subtitle;
     if (timedOut) {
-      subtitle = 'Tiempo agotado — Correcta: ${question.correctAnswer}';
+      subtitle = 'Tiempo agotado — Correcta: $correctLabel';
     } else if (isCorrect) {
-      subtitle = 'Correcta: ${question.correctAnswer}';
+      subtitle = 'Correcta: $correctLabel';
     } else {
-      subtitle =
-          'Tu respuesta: $userAnswer — Correcta: ${question.correctAnswer}';
+      subtitle = 'Tu respuesta: $userLabel — Correcta: $correctLabel';
     }
 
     return Card(
