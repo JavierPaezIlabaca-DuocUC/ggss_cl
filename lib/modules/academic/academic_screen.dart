@@ -19,6 +19,7 @@ import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../shared/widgets/loading_indicator.dart';
 import 'academic_providers.dart';
+import 'create_academic_screen.dart';
 import 'widgets/academic_card.dart';
 
 /// Pantalla de ofertas académicas — admite vista completa o filtrada por usuario
@@ -105,6 +106,13 @@ class _EmptyAcademicList extends StatelessWidget {
               ? 'Aún no has publicado ofertas académicas.'
               : AppStrings.academicNoOffers,
           icon: Icons.school_outlined,
+          actionLabel: isOwnPosts ? null : 'Crear primera publicación',
+          onActionTap: isOwnPosts
+              ? null
+              : () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const CreateAcademicScreen()),
+                  ),
         ),
       ],
     );

@@ -18,6 +18,7 @@ import '../../core/constants/app_strings.dart';
 import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../shared/widgets/loading_indicator.dart';
+import 'create_job_screen.dart';
 import 'jobs_providers.dart';
 import 'widgets/job_card.dart';
 
@@ -104,6 +105,13 @@ class _EmptyJobsList extends StatelessWidget {
               ? 'Aún no has publicado ofertas laborales.'
               : AppStrings.jobsNoOffers,
           icon: Icons.work_outline,
+          actionLabel: isOwnPosts ? null : 'Crear primera publicación',
+          onActionTap: isOwnPosts
+              ? null
+              : () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const CreateJobScreen()),
+                  ),
         ),
       ],
     );

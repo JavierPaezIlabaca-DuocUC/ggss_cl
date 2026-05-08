@@ -181,6 +181,17 @@ class _SplashScreen extends StatelessWidget {
                 letterSpacing: 1.0,
               ),
             ),
+            SizedBox(height: 8),
+            // Subtítulo
+            Text(
+              'Para guardias de seguridad privada de Chile',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
             SizedBox(height: 48),
             // Indicador de carga
             CircularProgressIndicator(

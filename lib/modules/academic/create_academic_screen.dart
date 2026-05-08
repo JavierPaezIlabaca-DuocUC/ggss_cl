@@ -15,7 +15,11 @@ import '../../core/utils/validators.dart';
 import '../../models/academic_offer_model.dart';
 import '../../shared/widgets/required_fields_note.dart';
 import '../auth/auth_providers.dart';
+import '../profile/profile_providers.dart';
 import 'academic_providers.dart';
+
+/// Selector de origen del número de WhatsApp
+enum _PhoneSource { account, other }
 
 /// Pantalla de creación de oferta académica
 class CreateAcademicScreen extends ConsumerStatefulWidget {
@@ -28,9 +32,10 @@ class CreateAcademicScreen extends ConsumerStatefulWidget {
 
 class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
   // ----------------------------------------------------------
-  // Clave del formulario
+  // Clave del formulario y scroll controller para validación
   // ----------------------------------------------------------
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
   // ----------------------------------------------------------
   // Controladores de texto
@@ -45,12 +50,31 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
   final _urlController = TextEditingController();
 
   // ----------------------------------------------------------
+  // Origen del número WhatsApp: cuenta o manual
+  // ----------------------------------------------------------
+  _PhoneSource _phoneSource = _PhoneSource.account;
+
+  // ----------------------------------------------------------
   // Estado de envío
   // ----------------------------------------------------------
   bool _isSubmitting = false;
 
+  // ----------------------------------------------------------
+  // Verifica si el usuario ha escrito algo (para PopScope)
+  // ----------------------------------------------------------
+  bool get _hasUnsavedChanges =>
+      _titleController.text.isNotEmpty ||
+      _institutionController.text.isNotEmpty ||
+      _descriptionController.text.isNotEmpty ||
+      _requirementsController.text.isNotEmpty ||
+      _durationController.text.isNotEmpty ||
+      _priceController.text.isNotEmpty ||
+      _whatsappController.text.isNotEmpty ||
+      _urlController.text.isNotEmpty;
+
   @override
   void dispose() {
+    _scrollController.dispose();
     _titleController.dispose();
     _institutionController.dispose();
     _descriptionController.dispose();
@@ -77,7 +101,22 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      // Scroll al inicio para mostrar los errores al usuario
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor corrige los errores antes de continuar'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final currentUser = ref.read(currentUserProvider);
     if (currentUser == null) return;
@@ -85,6 +124,16 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
     setState(() => _isSubmitting = true);
 
     try {
+      // Determinar el número WhatsApp según el origen seleccionado
+      String? whatsappNumber;
+      if (_phoneSource == _PhoneSource.account) {
+        final profile = ref.read(profileNotifierProvider).valueOrNull;
+        whatsappNumber = profile?.phone;
+      } else {
+        final digits = _whatsappController.text.replaceAll(' ', '').trim();
+        whatsappNumber = digits.isEmpty ? null : '+569$digits';
+      }
+
       final offer = AcademicOfferModel(
         id: '',
         title: _titleController.text.trim(),
@@ -99,12 +148,7 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
         price: _priceController.text.trim().isEmpty
             ? null
             : _priceController.text.trim(),
-        contactWhatsapp: _whatsappController.text
-                .replaceAll(' ', '')
-                .trim()
-                .isEmpty
-            ? null
-            : '+569${_whatsappController.text.replaceAll(' ', '').trim()}',
+        contactWhatsapp: whatsappNumber,
         url: _urlController.text.trim().isEmpty
             ? null
             : _urlController.text.trim(),
@@ -130,155 +174,239 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
   }
 
   // ----------------------------------------------------------
+  // Diálogo de confirmación al salir con cambios
+  // ----------------------------------------------------------
+
+  Future<void> _confirmDiscard(BuildContext context) async {
+    final navigator = Navigator.of(context);
+
+    if (!_hasUnsavedChanges) {
+      navigator.pop();
+      return;
+    }
+
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Deseas descartar los cambios?'),
+        content: const Text(
+          'Perderás toda la información ingresada en el formulario.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Seguir editando'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Descartar'),
+          ),
+        ],
+      ),
+    );
+
+    if (discard == true && mounted) navigator.pop();
+  }
+
+  // ----------------------------------------------------------
   // Construcción del formulario
   // ----------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.academicCreateNew),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.spacingMd),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --------------------------------------------------
-              // Indicador de campos obligatorios
-              // --------------------------------------------------
-              const RequiredFieldsNote(),
-              const SizedBox(height: AppDimensions.spacingMd),
+    final profileAsync = ref.watch(profileNotifierProvider);
+    final accountPhone = profileAsync.valueOrNull?.phone;
 
-              // --------------------------------------------------
-              // Sección: Información principal
-              // --------------------------------------------------
-              _SectionTitle(text: 'Información principal'),
-              const SizedBox(height: AppDimensions.spacingSm),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmDiscard(context);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(AppStrings.academicCreateNew),
+        ),
+        body: SingleChildScrollView(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(AppDimensions.spacingMd),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --------------------------------------------------
+                // Indicador de campos obligatorios
+                // --------------------------------------------------
+                const RequiredFieldsNote(),
+                const SizedBox(height: AppDimensions.spacingMd),
 
-              // Título del curso
-              _FormField(
-                controller: _titleController,
-                label: 'Título del curso',
-                hint: 'Ej: Curso de OS10 — Operaciones de Seguridad',
-                required: true,
-                validator: (v) =>
-                    Validators.required(v, 'El título es obligatorio'),
-              ),
+                // --------------------------------------------------
+                // Sección: Información principal
+                // --------------------------------------------------
+                _SectionTitle(text: 'Información principal'),
+                const SizedBox(height: AppDimensions.spacingSm),
 
-              const SizedBox(height: AppDimensions.spacingMd),
+                _FormField(
+                  controller: _titleController,
+                  label: 'Título del curso',
+                  hint: 'Ej: Curso de OS10 — Operaciones de Seguridad',
+                  required: true,
+                  validator: (v) =>
+                      Validators.required(v, 'El título es obligatorio'),
+                ),
 
-              // Institución
-              _FormField(
-                controller: _institutionController,
-                label: 'Institución',
-                hint: 'Ej: INACAP, Duoc UC, OTEC Seguridad',
-                required: true,
-                validator: (v) =>
-                    Validators.required(v, 'La institución es obligatoria'),
-              ),
+                const SizedBox(height: AppDimensions.spacingMd),
 
-              const SizedBox(height: AppDimensions.spacingMd),
+                _FormField(
+                  controller: _institutionController,
+                  label: 'Institución',
+                  hint: 'Ej: INACAP, Duoc UC, OTEC Seguridad',
+                  required: true,
+                  validator: (v) =>
+                      Validators.required(v, 'La institución es obligatoria'),
+                ),
 
-              // Descripción
-              _FormField(
-                controller: _descriptionController,
-                label: 'Descripción',
-                hint:
-                    'Describe el contenido del curso, metodología, beneficios...',
-                required: true,
-                maxLines: 5,
-                validator: (v) =>
-                    Validators.required(v, 'La descripción es obligatoria'),
-              ),
+                const SizedBox(height: AppDimensions.spacingMd),
 
-              const SizedBox(height: AppDimensions.spacingXl),
+                _FormField(
+                  controller: _descriptionController,
+                  label: 'Descripción',
+                  hint:
+                      'Describe el contenido del curso, metodología, beneficios...',
+                  required: true,
+                  maxLines: 5,
+                  validator: (v) =>
+                      Validators.required(v, 'La descripción es obligatoria'),
+                ),
 
-              // --------------------------------------------------
-              // Sección: Detalles del curso (opcionales)
-              // --------------------------------------------------
-              _SectionTitle(text: 'Detalles del curso (opcional)'),
-              const SizedBox(height: AppDimensions.spacingSm),
+                const SizedBox(height: AppDimensions.spacingXl),
 
-              // Requisitos
-              _FormField(
-                controller: _requirementsController,
-                label: 'Requisitos',
-                hint: 'Ej: OS10 vigente, nivel básico de computación...',
-                maxLines: 3,
-              ),
+                // --------------------------------------------------
+                // Sección: Detalles del curso (opcionales)
+                // --------------------------------------------------
+                _SectionTitle(text: 'Detalles del curso (opcional)'),
+                const SizedBox(height: AppDimensions.spacingSm),
 
-              const SizedBox(height: AppDimensions.spacingMd),
+                _FormField(
+                  controller: _requirementsController,
+                  label: 'Requisitos',
+                  hint: 'Ej: OS10 vigente, nivel básico de computación...',
+                  maxLines: 3,
+                ),
 
-              // Duración y precio en fila
-              Row(
-                children: [
-                  Expanded(
-                    child: _FormField(
-                      controller: _durationController,
-                      label: 'Duración',
-                      hint: 'Ej: 40 horas',
+                const SizedBox(height: AppDimensions.spacingMd),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _FormField(
+                        controller: _durationController,
+                        label: 'Duración',
+                        hint: 'Ej: 40 horas',
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: AppDimensions.spacingMd),
-                  Expanded(
-                    child: _FormField(
-                      controller: _priceController,
-                      label: 'Precio',
-                      hint: 'Ej: Gratuito / \$50.000',
+                    const SizedBox(width: AppDimensions.spacingMd),
+                    Expanded(
+                      child: _FormField(
+                        controller: _priceController,
+                        label: 'Precio',
+                        hint: 'Ej: Gratuito / \$50.000',
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
 
-              const SizedBox(height: AppDimensions.spacingXl),
+                const SizedBox(height: AppDimensions.spacingXl),
 
-              // --------------------------------------------------
-              // Sección: Contacto e inscripción (opcionales)
-              // --------------------------------------------------
-              _SectionTitle(text: 'Contacto e inscripción (opcional)'),
-              const SizedBox(height: AppDimensions.spacingSm),
+                // --------------------------------------------------
+                // Sección: Contacto e inscripción (opcionales)
+                // --------------------------------------------------
+                _SectionTitle(text: 'Contacto e inscripción (opcional)'),
+                const SizedBox(height: AppDimensions.spacingSm),
 
-              // Número WhatsApp con prefijo +569 fijo
-              _WhatsAppField(
-                controller: _whatsappController,
-                validator: _validateOptionalWhatsapp,
-              ),
-
-              const SizedBox(height: AppDimensions.spacingMd),
-
-              // URL de información
-              _FormField(
-                controller: _urlController,
-                label: 'URL de información o inscripción',
-                hint: 'https://...',
-                keyboardType: TextInputType.url,
-                validator: _validateUrl,
-              ),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // --------------------------------------------------
-              // Botón de publicar
-              // --------------------------------------------------
-              FilledButton(
-                onPressed: _isSubmitting ? null : _submit,
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
+                // Selector de origen del número: solo visible si el
+                // usuario tiene teléfono registrado en su perfil
+                if (accountPhone != null) ...[
+                  SegmentedButton<_PhoneSource>(
+                    segments: const [
+                      ButtonSegment(
+                        value: _PhoneSource.account,
+                        label: Text('Usar mi número de cuenta'),
+                        icon: Icon(Icons.person_outline),
+                      ),
+                      ButtonSegment(
+                        value: _PhoneSource.other,
+                        label: Text('Usar otro número'),
+                        icon: Icon(Icons.edit_outlined),
+                      ),
+                    ],
+                    selected: {_phoneSource},
+                    onSelectionChanged: (selection) {
+                      setState(() => _phoneSource = selection.first);
+                    },
+                    showSelectedIcon: false,
+                    style: ButtonStyle(
+                      minimumSize: WidgetStateProperty.all(
+                        const Size(
+                          double.infinity,
+                          AppDimensions.inputHeight,
                         ),
-                      )
-                    : const Text('Publicar oferta académica'),
-              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.spacingMd),
+                ],
 
-              const SizedBox(height: AppDimensions.spacingXl),
-            ],
+                // Campo WhatsApp: solo lectura (cuenta) o editable (otro)
+                if (accountPhone != null &&
+                    _phoneSource == _PhoneSource.account)
+                  _ReadOnlyWhatsAppField(phone: accountPhone)
+                else
+                  _WhatsAppField(
+                    controller: _whatsappController,
+                    validator: _validateOptionalWhatsapp,
+                  ),
+
+                const SizedBox(height: AppDimensions.spacingMd),
+
+                // URL de información
+                _FormField(
+                  controller: _urlController,
+                  label: 'URL de información o inscripción',
+                  hint: 'https://...',
+                  keyboardType: TextInputType.url,
+                  validator: _validateUrl,
+                ),
+
+                const SizedBox(height: AppDimensions.spacingXl),
+
+                // --------------------------------------------------
+                // Botón de publicar
+                // --------------------------------------------------
+                FilledButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(
+                      double.infinity,
+                      AppDimensions.inputHeight,
+                    ),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Publicar oferta académica'),
+                ),
+
+                const SizedBox(height: AppDimensions.spacingXl),
+              ],
+            ),
           ),
         ),
       ),
@@ -380,6 +508,43 @@ class _WhatsAppField extends StatelessWidget {
   }
 }
 
+/// Campo de WhatsApp de solo lectura que muestra el número de la cuenta
+class _ReadOnlyWhatsAppField extends StatelessWidget {
+  final String phone;
+
+  const _ReadOnlyWhatsAppField({required this.phone});
+
+  // Formatea "+56912345678" como "+569 12 34 56 78"
+  String _format(String raw) {
+    const prefix = '+569';
+    if (!raw.startsWith(prefix)) return raw;
+    final digits = raw.substring(prefix.length);
+    final buf = StringBuffer('+569 ');
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 2 == 0) buf.write(' ');
+      buf.write(digits[i]);
+    }
+    return buf.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      initialValue: _format(phone),
+      readOnly: true,
+      decoration: InputDecoration(
+        labelText: 'WhatsApp',
+        prefixIcon: const Icon(Icons.lock_outline, size: 18),
+        filled: true,
+        fillColor: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.5),
+      ),
+    );
+  }
+}
+
 /// Formatea la entrada como 8 dígitos con espacio cada 2: "12 34 56 78"
 class _PhoneDigitsFormatter extends TextInputFormatter {
   @override
@@ -387,12 +552,9 @@ class _PhoneDigitsFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    // Extraer solo dígitos y limitar a 8
     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final limited =
-        digits.length > 8 ? digits.substring(0, 8) : digits;
+    final limited = digits.length > 8 ? digits.substring(0, 8) : digits;
 
-    // Insertar espacio cada 2 dígitos: "12 34 56 78"
     final buffer = StringBuffer();
     for (int i = 0; i < limited.length; i++) {
       if (i > 0 && i % 2 == 0) buffer.write(' ');

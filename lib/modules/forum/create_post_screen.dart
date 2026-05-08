@@ -35,13 +35,22 @@ class CreatePostScreen extends ConsumerStatefulWidget {
 
 class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _categoryController = TextEditingController();
   bool _isSubmitting = false;
 
+  // ----------------------------------------------------------
+  // Verifica si el usuario ha escrito algo (para PopScope)
+  // ----------------------------------------------------------
+  bool get _hasUnsavedChanges =>
+      _titleController.text.isNotEmpty ||
+      _contentController.text.isNotEmpty;
+
   @override
   void dispose() {
+    _scrollController.dispose();
     _titleController.dispose();
     _contentController.dispose();
     _categoryController.dispose();
@@ -63,7 +72,23 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   // ----------------------------------------------------------
 
   Future<void> _submit() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    FocusScope.of(context).unfocus();
+
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      // Scroll al inicio para mostrar los errores al usuario
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor corrige los errores antes de continuar'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final currentUser = ref.read(currentUserProvider);
     if (currentUser == null) return;
@@ -89,12 +114,51 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.errorGeneral)),
+          SnackBar(
+            content: const Text(AppStrings.errorGeneral),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  // ----------------------------------------------------------
+  // Diálogo de confirmación al salir con cambios
+  // ----------------------------------------------------------
+
+  Future<void> _confirmDiscard(BuildContext context) async {
+    final navigator = Navigator.of(context);
+
+    if (!_hasUnsavedChanges) {
+      navigator.pop();
+      return;
+    }
+
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Deseas descartar los cambios?'),
+        content: const Text(
+          'Perderás toda la información ingresada en el formulario.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Seguir editando'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Descartar'),
+          ),
+        ],
+      ),
+    );
+
+    if (discard == true && mounted) navigator.pop();
   }
 
   // ----------------------------------------------------------
@@ -105,143 +169,155 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.forumCreatePost),
-        actions: [
-          // Botón publicar en la barra (alternativo al botón inferior)
-          TextButton(
-            onPressed: _isSubmitting ? null : _submit,
-            child: const Text(AppStrings.forumPublish),
-          ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(AppDimensions.spacingMd),
-          children: [
-            // --------------------------------------------------
-            // Indicador de campos obligatorios
-            // --------------------------------------------------
-            const RequiredFieldsNote(),
-            const SizedBox(height: AppDimensions.spacingMd),
-
-            // --------------------------------------------------
-            // Campo: Título (requerido)
-            // --------------------------------------------------
-            TextFormField(
-              controller: _titleController,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: '${AppStrings.forumTitleLabel} *',
-                hintText: AppStrings.forumTitleHint,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                ),
-              ),
-              maxLength: 120,
-              validator: (v) => (v?.trim().isEmpty ?? true)
-                  ? 'El título es obligatorio.'
-                  : null,
-            ),
-
-            const SizedBox(height: AppDimensions.spacingMd),
-
-            // --------------------------------------------------
-            // Campo: Contenido (requerido, multilínea)
-            // --------------------------------------------------
-            TextFormField(
-              controller: _contentController,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: '${AppStrings.forumContentLabel} *',
-                hintText: AppStrings.forumContentHint,
-                alignLabelWithHint: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                ),
-              ),
-              minLines: 5,
-              maxLines: 12,
-              validator: (v) => (v?.trim().isEmpty ?? true)
-                  ? 'El contenido es obligatorio.'
-                  : null,
-            ),
-
-            const SizedBox(height: AppDimensions.spacingMd),
-
-            // --------------------------------------------------
-            // Campo: Categoría (opcional)
-            // --------------------------------------------------
-            TextFormField(
-              controller: _categoryController,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: AppStrings.forumCategoryLabel,
-                hintText: AppStrings.forumCategoryHint,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                ),
-              ),
-              maxLength: 30,
-              onChanged: (_) => setState(() {}),
-            ),
-
-            const SizedBox(height: AppDimensions.spacingXs),
-
-            // Chips de sugerencias de categoría
-            Wrap(
-              spacing: AppDimensions.spacingSm,
-              runSpacing: AppDimensions.spacingXs,
-              children: _kCategories.map((category) {
-                final isSelected = _categoryController.text == category;
-                return ChoiceChip(
-                  label: Text(category),
-                  selected: isSelected,
-                  onSelected: (_) => _selectCategory(category),
-                  selectedColor: AppColors.primaryBlue.withValues(alpha: 0.15),
-                  labelStyle: theme.textTheme.labelMedium?.copyWith(
-                    color: isSelected
-                        ? AppColors.primaryBlue
-                        : theme.textTheme.labelMedium?.color,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: AppDimensions.spacingXl),
-
-            // --------------------------------------------------
-            // Botón publicar
-            // --------------------------------------------------
-            FilledButton.icon(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmDiscard(context);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(AppStrings.forumCreatePost),
+          actions: [
+            // Botón publicar en la barra (alternativo al botón inferior)
+            TextButton(
               onPressed: _isSubmitting ? null : _submit,
-              icon: _isSubmitting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.send_outlined),
-              label: const Text(AppStrings.forumPublish),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                minimumSize:
-                    const Size(double.infinity, AppDimensions.inputHeight),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              child: const Text(AppStrings.forumPublish),
+            ),
+          ],
+        ),
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(AppDimensions.spacingMd),
+            children: [
+              // --------------------------------------------------
+              // Indicador de campos obligatorios
+              // --------------------------------------------------
+              const RequiredFieldsNote(),
+              const SizedBox(height: AppDimensions.spacingMd),
+
+              // --------------------------------------------------
+              // Campo: Título (requerido)
+              // --------------------------------------------------
+              TextFormField(
+                controller: _titleController,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  labelText: '${AppStrings.forumTitleLabel} *',
+                  hintText: AppStrings.forumTitleHint,
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusMd),
+                  ),
+                ),
+                maxLength: 120,
+                validator: (v) => (v?.trim().isEmpty ?? true)
+                    ? 'El título es obligatorio.'
+                    : null,
+              ),
+
+              const SizedBox(height: AppDimensions.spacingMd),
+
+              // --------------------------------------------------
+              // Campo: Contenido (requerido, multilínea)
+              // --------------------------------------------------
+              TextFormField(
+                controller: _contentController,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  labelText: '${AppStrings.forumContentLabel} *',
+                  hintText: AppStrings.forumContentHint,
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusMd),
+                  ),
+                ),
+                minLines: 5,
+                maxLines: 12,
+                validator: (v) => (v?.trim().isEmpty ?? true)
+                    ? 'El contenido es obligatorio.'
+                    : null,
+              ),
+
+              const SizedBox(height: AppDimensions.spacingMd),
+
+              // --------------------------------------------------
+              // Campo: Categoría (opcional)
+              // --------------------------------------------------
+              TextFormField(
+                controller: _categoryController,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  labelText: AppStrings.forumCategoryLabel,
+                  hintText: AppStrings.forumCategoryHint,
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusMd),
+                  ),
+                ),
+                maxLength: 30,
+                onChanged: (_) => setState(() {}),
+              ),
+
+              const SizedBox(height: AppDimensions.spacingXs),
+
+              // Chips de sugerencias de categoría
+              Wrap(
+                spacing: AppDimensions.spacingSm,
+                runSpacing: AppDimensions.spacingXs,
+                children: _kCategories.map((category) {
+                  final isSelected = _categoryController.text == category;
+                  return ChoiceChip(
+                    label: Text(category),
+                    selected: isSelected,
+                    onSelected: (_) => _selectCategory(category),
+                    selectedColor:
+                        AppColors.primaryBlue.withValues(alpha: 0.15),
+                    labelStyle: theme.textTheme.labelMedium?.copyWith(
+                      color: isSelected
+                          ? AppColors.primaryBlue
+                          : theme.textTheme.labelMedium?.color,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: AppDimensions.spacingXl),
+
+              // --------------------------------------------------
+              // Botón publicar
+              // --------------------------------------------------
+              FilledButton.icon(
+                onPressed: _isSubmitting ? null : _submit,
+                icon: _isSubmitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send_outlined),
+                label: const Text(AppStrings.forumPublish),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  minimumSize: const Size(
+                      double.infinity, AppDimensions.inputHeight),
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusMd),
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: AppDimensions.spacingMd),
-          ],
+              const SizedBox(height: AppDimensions.spacingMd),
+            ],
+          ),
         ),
       ),
     );

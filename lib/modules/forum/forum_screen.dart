@@ -19,6 +19,7 @@ import '../../core/constants/app_strings.dart';
 import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../shared/widgets/loading_indicator.dart';
+import 'create_post_screen.dart';
 import 'forum_providers.dart';
 import 'widgets/forum_post_card.dart';
 
@@ -106,6 +107,13 @@ class _EmptyForumList extends StatelessWidget {
               ? 'Aún no has publicado en el foro.'
               : AppStrings.forumNoPosts,
           icon: Icons.chat_bubble_outline,
+          actionLabel: isOwnPosts ? null : 'Crear primera publicación',
+          onActionTap: isOwnPosts
+              ? null
+              : () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const CreatePostScreen()),
+                  ),
         ),
       ],
     );

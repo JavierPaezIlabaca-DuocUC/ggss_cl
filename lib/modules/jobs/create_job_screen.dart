@@ -16,7 +16,11 @@ import '../../models/job_model.dart';
 import '../../shared/widgets/chile_location_selector.dart';
 import '../../shared/widgets/required_fields_note.dart';
 import '../auth/auth_providers.dart';
+import '../profile/profile_providers.dart';
 import 'jobs_providers.dart';
+
+/// Selector de origen del número de WhatsApp
+enum _PhoneSource { account, other }
 
 /// Pantalla de creación de oferta laboral
 class CreateJobScreen extends ConsumerStatefulWidget {
@@ -28,9 +32,10 @@ class CreateJobScreen extends ConsumerStatefulWidget {
 
 class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
   // ----------------------------------------------------------
-  // Clave del formulario para validación
+  // Clave del formulario y scroll controller para validación
   // ----------------------------------------------------------
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
   // ----------------------------------------------------------
   // Controladores de texto para cada campo
@@ -58,12 +63,31 @@ class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
   String _salaryType = 'fijo';
 
   // ----------------------------------------------------------
+  // Origen del número WhatsApp: cuenta o manual
+  // ----------------------------------------------------------
+  _PhoneSource _phoneSource = _PhoneSource.account;
+
+  // ----------------------------------------------------------
   // Estado de envío
   // ----------------------------------------------------------
   bool _isSubmitting = false;
 
+  // ----------------------------------------------------------
+  // Verifica si el usuario ha escrito algo (para PopScope)
+  // ----------------------------------------------------------
+  bool get _hasUnsavedChanges =>
+      _titleController.text.isNotEmpty ||
+      _companyController.text.isNotEmpty ||
+      _descriptionController.text.isNotEmpty ||
+      _requirementsController.text.isNotEmpty ||
+      _salaryAmountController.text.isNotEmpty ||
+      _salaryMinController.text.isNotEmpty ||
+      _salaryMaxController.text.isNotEmpty ||
+      _whatsappController.text.isNotEmpty;
+
   @override
   void dispose() {
+    _scrollController.dispose();
     _titleController.dispose();
     _companyController.dispose();
     _descriptionController.dispose();
@@ -135,7 +159,22 @@ class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      // Scroll al inicio para mostrar los errores al usuario
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor corrige los errores antes de continuar'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final currentUser = ref.read(currentUserProvider);
     if (currentUser == null) return;
@@ -143,8 +182,15 @@ class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      final whatsappDigits =
-          _whatsappController.text.replaceAll(' ', '').trim();
+      // Determinar el número WhatsApp según el origen seleccionado
+      String? whatsappNumber;
+      if (_phoneSource == _PhoneSource.account) {
+        final profile = ref.read(profileNotifierProvider).valueOrNull;
+        whatsappNumber = profile?.phone;
+      } else {
+        final digits = _whatsappController.text.replaceAll(' ', '').trim();
+        whatsappNumber = digits.isEmpty ? null : '+569$digits';
+      }
 
       final job = JobModel(
         id: '',
@@ -156,8 +202,7 @@ class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
             ? null
             : _requirementsController.text.trim(),
         salaryRange: _buildSalaryRange(),
-        contactWhatsapp:
-            whatsappDigits.isEmpty ? null : '+569$whatsappDigits',
+        contactWhatsapp: whatsappNumber,
         createdBy: currentUser.id,
         createdAt: DateTime.now(),
       );
@@ -180,218 +225,299 @@ class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
   }
 
   // ----------------------------------------------------------
+  // Diálogo de confirmación al salir con cambios
+  // ----------------------------------------------------------
+
+  Future<void> _confirmDiscard(BuildContext context) async {
+    final navigator = Navigator.of(context);
+
+    if (!_hasUnsavedChanges) {
+      navigator.pop();
+      return;
+    }
+
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Deseas descartar los cambios?'),
+        content: const Text(
+          'Perderás toda la información ingresada en el formulario.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Seguir editando'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Descartar'),
+          ),
+        ],
+      ),
+    );
+
+    if (discard == true && mounted) navigator.pop();
+  }
+
+  // ----------------------------------------------------------
   // Construcción del formulario
   // ----------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.jobsCreateNew),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.spacingMd),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --------------------------------------------------
-              // Indicador de campos obligatorios
-              // --------------------------------------------------
-              const RequiredFieldsNote(),
-              const SizedBox(height: AppDimensions.spacingMd),
+    final profileAsync = ref.watch(profileNotifierProvider);
+    final accountPhone = profileAsync.valueOrNull?.phone;
 
-              // --------------------------------------------------
-              // Sección: Información principal
-              // --------------------------------------------------
-              _SectionTitle(text: 'Información principal'),
-              const SizedBox(height: AppDimensions.spacingSm),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmDiscard(context);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(AppStrings.jobsCreateNew),
+        ),
+        body: SingleChildScrollView(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(AppDimensions.spacingMd),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --------------------------------------------------
+                // Indicador de campos obligatorios
+                // --------------------------------------------------
+                const RequiredFieldsNote(),
+                const SizedBox(height: AppDimensions.spacingMd),
 
-              _FormField(
-                controller: _titleController,
-                label: 'Título del cargo',
-                hint: 'Ej: Guardia de seguridad diurno',
-                required: true,
-                validator: (v) =>
-                    Validators.required(v, 'El título es obligatorio'),
-              ),
+                // --------------------------------------------------
+                // Sección: Información principal
+                // --------------------------------------------------
+                _SectionTitle(text: 'Información principal'),
+                const SizedBox(height: AppDimensions.spacingSm),
 
-              const SizedBox(height: AppDimensions.spacingMd),
-
-              _FormField(
-                controller: _companyController,
-                label: 'Empresa',
-                hint: 'Ej: Seguridad Total S.A.',
-                required: true,
-                validator: (v) =>
-                    Validators.required(v, 'La empresa es obligatoria'),
-              ),
-
-              const SizedBox(height: AppDimensions.spacingMd),
-
-              // Selector de región y comunas de Chile
-              ChileLocationSelector(
-                onLocationChanged: (region, communes) {
-                  setState(() {
-                    _locationRegion = region;
-                    _locationCommunes = communes;
-                  });
-                },
-              ),
-
-              const SizedBox(height: AppDimensions.spacingMd),
-
-              _FormField(
-                controller: _descriptionController,
-                label: 'Descripción',
-                hint:
-                    'Describe las funciones del cargo, horarios, condiciones...',
-                required: true,
-                maxLines: 5,
-                validator: (v) =>
-                    Validators.required(v, 'La descripción es obligatoria'),
-              ),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // --------------------------------------------------
-              // Sección: Salario (obligatorio)
-              // --------------------------------------------------
-              _SectionTitle(text: 'Salario *'),
-              const SizedBox(height: AppDimensions.spacingSm),
-
-              // Selector segmentado: Sueldo fijo / Rango salarial
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(
-                    value: 'fijo',
-                    label: Text('Sueldo fijo'),
-                  ),
-                  ButtonSegment(
-                    value: 'rango',
-                    label: Text('Rango salarial'),
-                  ),
-                ],
-                selected: {_salaryType},
-                onSelectionChanged: (selection) {
-                  setState(() => _salaryType = selection.first);
-                },
-                showSelectedIcon: false,
-                style: ButtonStyle(
-                  minimumSize: WidgetStateProperty.all(
-                    const Size(double.infinity, AppDimensions.inputHeight),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppDimensions.spacingMd),
-
-              // Campo condicional según tipo de salario
-              if (_salaryType == 'fijo') ...[
-                // Sueldo fijo: un único campo de monto
                 _FormField(
-                  controller: _salaryAmountController,
-                  label: 'Monto (\$)',
-                  hint: 'Ej: 850000',
+                  controller: _titleController,
+                  label: 'Título del cargo',
+                  hint: 'Ej: Guardia de seguridad diurno',
                   required: true,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (v) =>
-                      Validators.required(v, 'El salario es obligatorio'),
+                      Validators.required(v, 'El título es obligatorio'),
                 ),
-              ] else ...[
-                // Rango salarial: mínimo y máximo lado a lado
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FormField(
-                        controller: _salaryMinController,
-                        label: 'Mínimo (\$)',
-                        hint: 'Ej: 850000',
-                        required: true,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        validator: (v) =>
-                            Validators.required(v, 'El mínimo es obligatorio'),
-                      ),
+
+                const SizedBox(height: AppDimensions.spacingMd),
+
+                _FormField(
+                  controller: _companyController,
+                  label: 'Empresa',
+                  hint: 'Ej: Seguridad Total S.A.',
+                  required: true,
+                  validator: (v) =>
+                      Validators.required(v, 'La empresa es obligatoria'),
+                ),
+
+                const SizedBox(height: AppDimensions.spacingMd),
+
+                // Selector de región y comunas de Chile
+                ChileLocationSelector(
+                  onLocationChanged: (region, communes) {
+                    setState(() {
+                      _locationRegion = region;
+                      _locationCommunes = communes;
+                    });
+                  },
+                ),
+
+                const SizedBox(height: AppDimensions.spacingMd),
+
+                _FormField(
+                  controller: _descriptionController,
+                  label: 'Descripción',
+                  hint:
+                      'Describe las funciones del cargo, horarios, condiciones...',
+                  required: true,
+                  maxLines: 5,
+                  validator: (v) =>
+                      Validators.required(v, 'La descripción es obligatoria'),
+                ),
+
+                const SizedBox(height: AppDimensions.spacingXl),
+
+                // --------------------------------------------------
+                // Sección: Salario (obligatorio)
+                // --------------------------------------------------
+                _SectionTitle(text: 'Salario *'),
+                const SizedBox(height: AppDimensions.spacingSm),
+
+                // Selector segmentado: Sueldo fijo / Rango salarial
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'fijo',
+                      label: Text('Sueldo fijo'),
                     ),
-                    const SizedBox(width: AppDimensions.spacingMd),
-                    Expanded(
-                      child: _FormField(
-                        controller: _salaryMaxController,
-                        label: 'Máximo (\$)',
-                        hint: 'Ej: 1200000',
-                        required: true,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        validator: _validateSalaryMax,
-                      ),
+                    ButtonSegment(
+                      value: 'rango',
+                      label: Text('Rango salarial'),
                     ),
                   ],
-                ),
-              ],
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // --------------------------------------------------
-              // Sección: Detalles adicionales (opcionales)
-              // --------------------------------------------------
-              _SectionTitle(text: 'Detalles adicionales (opcional)'),
-              const SizedBox(height: AppDimensions.spacingSm),
-
-              _FormField(
-                controller: _requirementsController,
-                label: 'Requisitos',
-                hint: 'OS10 vigente, experiencia mínima, estudios...',
-                maxLines: 3,
-              ),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // --------------------------------------------------
-              // Sección: Contacto (opcional)
-              // --------------------------------------------------
-              _SectionTitle(text: 'Contacto (opcional)'),
-              const SizedBox(height: AppDimensions.spacingSm),
-
-              // Número WhatsApp con prefijo +569 fijo
-              _WhatsAppField(
-                controller: _whatsappController,
-                validator: _validateOptionalWhatsapp,
-              ),
-
-              const SizedBox(height: AppDimensions.spacingXl),
-
-              // --------------------------------------------------
-              // Botón de publicar
-              // --------------------------------------------------
-              FilledButton(
-                onPressed: _isSubmitting ? null : _submit,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(
-                    double.infinity,
-                    AppDimensions.inputHeight,
+                  selected: {_salaryType},
+                  onSelectionChanged: (selection) {
+                    setState(() => _salaryType = selection.first);
+                  },
+                  showSelectedIcon: false,
+                  style: ButtonStyle(
+                    minimumSize: WidgetStateProperty.all(
+                      const Size(double.infinity, AppDimensions.inputHeight),
+                    ),
                   ),
                 ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text('Publicar oferta'),
-              ),
 
-              const SizedBox(height: AppDimensions.spacingXl),
-            ],
+                const SizedBox(height: AppDimensions.spacingMd),
+
+                // Campo condicional según tipo de salario
+                if (_salaryType == 'fijo') ...[
+                  _FormField(
+                    controller: _salaryAmountController,
+                    label: 'Monto (\$)',
+                    hint: 'Ej: 850000',
+                    required: true,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    validator: (v) =>
+                        Validators.required(v, 'El salario es obligatorio'),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FormField(
+                          controller: _salaryMinController,
+                          label: 'Mínimo (\$)',
+                          hint: 'Ej: 850000',
+                          required: true,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          validator: (v) => Validators.required(
+                              v, 'El mínimo es obligatorio'),
+                        ),
+                      ),
+                      const SizedBox(width: AppDimensions.spacingMd),
+                      Expanded(
+                        child: _FormField(
+                          controller: _salaryMaxController,
+                          label: 'Máximo (\$)',
+                          hint: 'Ej: 1200000',
+                          required: true,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          validator: _validateSalaryMax,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+
+                const SizedBox(height: AppDimensions.spacingXl),
+
+                // --------------------------------------------------
+                // Sección: Detalles adicionales (opcionales)
+                // --------------------------------------------------
+                _SectionTitle(text: 'Detalles adicionales (opcional)'),
+                const SizedBox(height: AppDimensions.spacingSm),
+
+                _FormField(
+                  controller: _requirementsController,
+                  label: 'Requisitos',
+                  hint: 'OS10 vigente, experiencia mínima, estudios...',
+                  maxLines: 3,
+                ),
+
+                const SizedBox(height: AppDimensions.spacingXl),
+
+                // --------------------------------------------------
+                // Sección: Contacto WhatsApp (opcional)
+                // --------------------------------------------------
+                _SectionTitle(text: 'Contacto (opcional)'),
+                const SizedBox(height: AppDimensions.spacingSm),
+
+                // Selector de origen del número: solo visible si el
+                // usuario tiene teléfono registrado en su perfil
+                if (accountPhone != null) ...[
+                  SegmentedButton<_PhoneSource>(
+                    segments: const [
+                      ButtonSegment(
+                        value: _PhoneSource.account,
+                        label: Text('Usar mi número de cuenta'),
+                        icon: Icon(Icons.person_outline),
+                      ),
+                      ButtonSegment(
+                        value: _PhoneSource.other,
+                        label: Text('Usar otro número'),
+                        icon: Icon(Icons.edit_outlined),
+                      ),
+                    ],
+                    selected: {_phoneSource},
+                    onSelectionChanged: (selection) {
+                      setState(() => _phoneSource = selection.first);
+                    },
+                    showSelectedIcon: false,
+                    style: ButtonStyle(
+                      minimumSize: WidgetStateProperty.all(
+                        const Size(
+                          double.infinity,
+                          AppDimensions.inputHeight,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.spacingMd),
+                ],
+
+                // Campo WhatsApp: solo lectura (cuenta) o editable (otro)
+                if (accountPhone != null &&
+                    _phoneSource == _PhoneSource.account)
+                  _ReadOnlyWhatsAppField(phone: accountPhone)
+                else
+                  _WhatsAppField(
+                    controller: _whatsappController,
+                    validator: _validateOptionalWhatsapp,
+                  ),
+
+                const SizedBox(height: AppDimensions.spacingXl),
+
+                // --------------------------------------------------
+                // Botón de publicar
+                // --------------------------------------------------
+                FilledButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(
+                      double.infinity,
+                      AppDimensions.inputHeight,
+                    ),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Publicar oferta'),
+                ),
+
+                const SizedBox(height: AppDimensions.spacingXl),
+              ],
+            ),
           ),
         ),
       ),
@@ -483,6 +609,43 @@ class _WhatsAppField extends StatelessWidget {
   }
 }
 
+/// Campo de WhatsApp de solo lectura que muestra el número de la cuenta
+class _ReadOnlyWhatsAppField extends StatelessWidget {
+  final String phone;
+
+  const _ReadOnlyWhatsAppField({required this.phone});
+
+  // Formatea "+56912345678" como "+569 12 34 56 78"
+  String _format(String raw) {
+    const prefix = '+569';
+    if (!raw.startsWith(prefix)) return raw;
+    final digits = raw.substring(prefix.length);
+    final buf = StringBuffer('+569 ');
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 2 == 0) buf.write(' ');
+      buf.write(digits[i]);
+    }
+    return buf.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      initialValue: _format(phone),
+      readOnly: true,
+      decoration: InputDecoration(
+        labelText: 'WhatsApp',
+        prefixIcon: const Icon(Icons.lock_outline, size: 18),
+        filled: true,
+        fillColor: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.5),
+      ),
+    );
+  }
+}
+
 /// Formatea la entrada como 8 dígitos con espacio cada 2: "12 34 56 78"
 class _PhoneDigitsFormatter extends TextInputFormatter {
   @override
@@ -490,12 +653,9 @@ class _PhoneDigitsFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    // Extraer solo dígitos y limitar a 8
     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final limited =
-        digits.length > 8 ? digits.substring(0, 8) : digits;
+    final limited = digits.length > 8 ? digits.substring(0, 8) : digits;
 
-    // Insertar espacio cada 2 dígitos: "12 34 56 78"
     final buffer = StringBuffer();
     for (int i = 0; i < limited.length; i++) {
       if (i > 0 && i % 2 == 0) buffer.write(' ');
