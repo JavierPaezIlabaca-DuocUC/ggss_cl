@@ -15,6 +15,7 @@ import '../../models/profile_model.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../shared/widgets/loading_indicator.dart';
 import '../auth/auth_providers.dart';
+import '../auth/login_screen.dart';
 import 'edit_profile_screen.dart';
 import 'profile_providers.dart';
 
@@ -223,9 +224,18 @@ class ProfileScreen extends ConsumerWidget {
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
-            onPressed: () {
+            onPressed: () async {
+              // Cerrar el diálogo primero
               Navigator.of(ctx).pop();
-              ref.read(authNotifierProvider.notifier).signOut();
+              // Ejecutar cierre de sesión y esperar a que complete
+              await ref.read(authNotifierProvider.notifier).signOut();
+              // Limpiar toda la pila de navegación y redirigir al login
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
             child: const Text(AppStrings.profileLogout),
           ),

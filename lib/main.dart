@@ -25,6 +25,7 @@ import 'core/constants/app_strings.dart';
 import 'core/constants/supabase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'modules/auth/auth_providers.dart';
+import 'modules/auth/email_verification_screen.dart';
 import 'modules/auth/login_screen.dart';
 import 'modules/settings/settings_providers.dart';
 import 'modules/shell/main_shell.dart';
@@ -113,13 +114,20 @@ class GgssApp extends ConsumerWidget {
         // Error del stream: redirigir a login por seguridad
         error: (err, st) => const LoginScreen(),
 
-        // Estado conocido: decidir según la sesión activa
+        // Estado conocido: decidir según la sesión activa y la confirmación del correo
         data: (authState) {
-          // Si hay sesión activa, mostrar el shell principal de la app
           if (authState.session != null) {
-            return const MainShell();
+            // Verificar si el correo electrónico fue confirmado
+            final emailConfirmedAt =
+                authState.session!.user.emailConfirmedAt;
+            if (emailConfirmedAt != null) {
+              // Correo confirmado: mostrar la app completa
+              return const MainShell();
+            }
+            // Correo pendiente de confirmación: pantalla de verificación
+            return const EmailVerificationScreen();
           }
-          // Si no hay sesión, mostrar la pantalla de inicio de sesión
+          // Sin sesión activa: mostrar la pantalla de inicio de sesión
           return const LoginScreen();
         },
       ),

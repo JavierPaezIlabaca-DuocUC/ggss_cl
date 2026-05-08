@@ -88,6 +88,16 @@ class AuthRepository {
     await _authService.sendPasswordResetEmail(email: email);
   }
 
+  /// Reenvía el correo de confirmación de cuenta a [email]
+  Future<void> resendConfirmationEmail({required String email}) async {
+    await _authService.resendConfirmationEmail(email: email);
+  }
+
+  /// Refresca la sesión activa para obtener emailConfirmedAt actualizado
+  Future<void> refreshSession() async {
+    await _authService.refreshSession();
+  }
+
   /// Cierra la sesión del usuario
   Future<void> signOut() async {
     await _authService.signOut();

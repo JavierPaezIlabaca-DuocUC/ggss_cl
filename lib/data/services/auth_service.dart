@@ -87,6 +87,29 @@ class AuthService {
   }
 
   // ----------------------------------------------------------
+  // Reenvío del correo de confirmación de cuenta
+  // ----------------------------------------------------------
+
+  /// Reenvía el correo de confirmación de cuenta a [email].
+  /// Útil cuando el usuario no recibió o no encontró el correo original.
+  Future<void> resendConfirmationEmail({required String email}) async {
+    await _client.auth.resend(
+      type: OtpType.signup,
+      email: email.trim(),
+    );
+  }
+
+  // ----------------------------------------------------------
+  // Refresco de sesión (actualiza emailConfirmedAt)
+  // ----------------------------------------------------------
+
+  /// Refresca la sesión activa para obtener datos actualizados del usuario.
+  /// Después de confirmar el correo, este método actualiza emailConfirmedAt.
+  Future<AuthResponse> refreshSession() async {
+    return await _client.auth.refreshSession();
+  }
+
+  // ----------------------------------------------------------
   // Cierre de sesión
   // ----------------------------------------------------------
 

@@ -3,109 +3,92 @@
 // Pantalla de entrada al Simulador OS10.
 // Muestra estadísticas del usuario y botones de acción.
 // Embebida en MainShell (sin Scaffold propio).
+//
+// Las estadísticas se cargan desde os10StatsProvider (Riverpod).
+// Cuando el usuario completa un examen, Os10ResultsScreen invalida
+// el proveedor y esta pantalla se reconstruye automáticamente con
+// los datos frescos de SharedPreferences.
 // ============================================================
 
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_strings.dart';
-import '../../data/repositories/os10_repository.dart';
+import 'os10_providers.dart';
 import 'os10_question_screen.dart';
 
-// Claves de almacenamiento local
-const String _keyBestScore = 'os10_best_score_percent';
-const String _keyHistory = 'os10_exam_history';
-
 /// Pantalla de inicio del Simulador OS10 (embebida en MainShell)
-class Os10Screen extends StatefulWidget {
+class Os10Screen extends ConsumerWidget {
   const Os10Screen({super.key});
 
   @override
-  State<Os10Screen> createState() => _Os10ScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Observar el proveedor de estadísticas — se reconstruye al invalidarse
+    final statsAsync = ref.watch(os10StatsProvider);
 
-class _Os10ScreenState extends State<Os10Screen> {
-  // ----------------------------------------------------------
-  // Estado local
-  // ----------------------------------------------------------
-  int? _bestScorePercent;
-  List<Map<String, dynamic>> _history = [];
-  int _totalQuestions = 0;
-  bool _loading = true;
+    return statsAsync.when(
+      // ----------------------------------------------------------
+      // Estado de carga inicial
+      // ----------------------------------------------------------
+      loading: () => const Center(child: CircularProgressIndicator()),
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
+      // ----------------------------------------------------------
+      // Error al cargar estadísticas (se muestra contenido parcial)
+      // ----------------------------------------------------------
+      error: (err, _) => _Os10Content(
+        stats: const Os10StatsData(
+          bestScorePercent: null,
+          history: [],
+          totalQuestions: 0,
+        ),
+        onStartExam: (ctx) => _startExam(ctx, ref),
+        onShowHistory: (ctx) =>
+            _showHistory(ctx, const Os10StatsData(
+              bestScorePercent: null,
+              history: [],
+              totalQuestions: 0,
+            )),
+      ),
 
-  // ----------------------------------------------------------
-  // Carga datos locales y total de preguntas disponibles
-  // ----------------------------------------------------------
-
-  Future<void> _loadData() async {
-    if (!mounted) return;
-    setState(() => _loading = true);
-
-    // Leer mejor puntaje e historial de SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final bestScore = prefs.getInt(_keyBestScore);
-    final historyJson = prefs.getString(_keyHistory);
-    List<Map<String, dynamic>> history = [];
-    if (historyJson != null) {
-      try {
-        final decoded = jsonDecode(historyJson) as List;
-        history = decoded.cast<Map<String, dynamic>>();
-      } catch (_) {}
-    }
-
-    // Obtener el total de preguntas disponibles en Supabase
-    int count = 0;
-    try {
-      final questions = await Os10Repository().getAllQuestions();
-      count = questions.length;
-    } catch (_) {}
-
-    if (!mounted) return;
-    setState(() {
-      _bestScorePercent = bestScore;
-      _history = history;
-      _totalQuestions = count;
-      _loading = false;
-    });
+      // ----------------------------------------------------------
+      // Datos cargados correctamente
+      // ----------------------------------------------------------
+      data: (stats) => _Os10Content(
+        stats: stats,
+        onStartExam: (ctx) => _startExam(ctx, ref),
+        onShowHistory: (ctx) => _showHistory(ctx, stats),
+      ),
+    );
   }
 
   // ----------------------------------------------------------
   // Inicia el examen y espera el resultado al volver
   // ----------------------------------------------------------
 
-  Future<void> _startExam() async {
-    if (_totalQuestions == 0) return;
+  Future<void> _startExam(BuildContext context, WidgetRef ref) async {
+    if (!context.mounted) return;
 
     // Navegar al examen y esperar retorno
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const Os10QuestionScreen()),
     );
 
-    // Recargar estadísticas al volver (el examen pudo haber guardado un nuevo puntaje)
-    await _loadData();
-
     // Si el usuario eligió "Repetir", iniciar otro examen de inmediato
-    if (result == 'repeat' && mounted) {
-      _startExam();
+    if (result == 'repeat' && context.mounted) {
+      _startExam(context, ref);
     }
+    // Nota: el refresco de estadísticas lo hace Os10ResultsScreen al guardar,
+    // invalidando os10StatsProvider. Esta pantalla se reconstruye sola.
   }
 
   // ----------------------------------------------------------
   // Muestra el historial de intentos en un bottom sheet
   // ----------------------------------------------------------
 
-  void _showHistory() {
-    if (_history.isEmpty) {
+  void _showHistory(BuildContext context, Os10StatsData stats) {
+    if (stats.history.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Aún no tienes intentos registrados.'),
@@ -120,13 +103,26 @@ class _Os10ScreenState extends State<Os10Screen> {
           top: Radius.circular(AppDimensions.radiusLg),
         ),
       ),
-      builder: (_) => _HistoryBottomSheet(history: _history),
+      builder: (_) => _HistoryBottomSheet(history: stats.history),
     );
   }
+}
 
-  // ----------------------------------------------------------
-  // Construcción del widget
-  // ----------------------------------------------------------
+// ============================================================
+// Widget interno: contenido de la pantalla OS10
+// ============================================================
+
+/// Contenido principal de Os10Screen, parametrizado por las estadísticas
+class _Os10Content extends StatelessWidget {
+  final Os10StatsData stats;
+  final void Function(BuildContext) onStartExam;
+  final void Function(BuildContext) onShowHistory;
+
+  const _Os10Content({
+    required this.stats,
+    required this.onStartExam,
+    required this.onShowHistory,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +183,7 @@ class _Os10ScreenState extends State<Os10Screen> {
                 child: _StatCard(
                   icon: Icons.quiz_outlined,
                   label: 'Preguntas\ndisponibles',
-                  value: _loading ? '—' : '$_totalQuestions',
+                  value: '${stats.totalQuestions}',
                   color: theme.colorScheme.primary,
                 ),
               ),
@@ -196,11 +192,11 @@ class _Os10ScreenState extends State<Os10Screen> {
                 child: _StatCard(
                   icon: Icons.emoji_events_outlined,
                   label: 'Mejor\npuntaje',
-                  value: _bestScorePercent != null
-                      ? '$_bestScorePercent%'
+                  value: stats.bestScorePercent != null
+                      ? '${stats.bestScorePercent}%'
                       : '—',
-                  color: _bestScorePercent != null &&
-                          _bestScorePercent! >= 70
+                  color: stats.bestScorePercent != null &&
+                          stats.bestScorePercent! >= 70
                       ? AppColors.success
                       : theme.colorScheme.primary,
                 ),
@@ -210,7 +206,7 @@ class _Os10ScreenState extends State<Os10Screen> {
                 child: _StatCard(
                   icon: Icons.history_outlined,
                   label: 'Intentos\nrealizados',
-                  value: '${_history.length}',
+                  value: '${stats.history.length}',
                   color: theme.colorScheme.primary,
                 ),
               ),
@@ -261,7 +257,9 @@ class _Os10ScreenState extends State<Os10Screen> {
           // Botón principal: iniciar examen
           // --------------------------------------------------
           FilledButton.icon(
-            onPressed: (_loading || _totalQuestions == 0) ? null : _startExam,
+            onPressed: stats.totalQuestions == 0
+                ? null
+                : () => onStartExam(context),
             icon: const Icon(Icons.play_arrow_rounded),
             label: Text(AppStrings.os10Start),
           ),
@@ -272,7 +270,7 @@ class _Os10ScreenState extends State<Os10Screen> {
           // Botón secundario: ver historial
           // --------------------------------------------------
           OutlinedButton.icon(
-            onPressed: _showHistory,
+            onPressed: () => onShowHistory(context),
             icon: const Icon(Icons.history_rounded),
             label: const Text('Ver historial'),
             style: OutlinedButton.styleFrom(

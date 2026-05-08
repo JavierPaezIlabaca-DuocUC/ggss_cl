@@ -8,19 +8,21 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_strings.dart';
 import '../../models/os10_question_model.dart';
+import 'os10_providers.dart';
 
 // Claves de almacenamiento local (deben coincidir con os10_screen.dart)
 const String _keyBestScore = 'os10_best_score_percent';
 const String _keyHistory = 'os10_exam_history';
 
 /// Pantalla de resultados del examen OS10
-class Os10ResultsScreen extends StatefulWidget {
+class Os10ResultsScreen extends ConsumerStatefulWidget {
   final List<Os10QuestionModel> questions;
 
   /// Respuestas del usuario: null = sin responder / tiempo agotado
@@ -33,10 +35,10 @@ class Os10ResultsScreen extends StatefulWidget {
   });
 
   @override
-  State<Os10ResultsScreen> createState() => _Os10ResultsScreenState();
+  ConsumerState<Os10ResultsScreen> createState() => _Os10ResultsScreenState();
 }
 
-class _Os10ResultsScreenState extends State<Os10ResultsScreen> {
+class _Os10ResultsScreenState extends ConsumerState<Os10ResultsScreen> {
   // ----------------------------------------------------------
   // Resultados calculados
   // ----------------------------------------------------------
@@ -98,6 +100,12 @@ class _Os10ResultsScreenState extends State<Os10ResultsScreen> {
       'date': DateTime.now().toIso8601String(),
     });
     await prefs.setString(_keyHistory, jsonEncode(history));
+
+    // Invalidar el proveedor de estadísticas para que Os10Screen
+    // recargue los datos actualizados en cuanto vuelva a ser visible.
+    if (mounted) {
+      ref.read(os10StatsProvider.notifier).refresh();
+    }
   }
 
   // ----------------------------------------------------------

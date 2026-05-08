@@ -80,6 +80,22 @@ class AppStrings {
       'Si no lo encuentras, revisa la carpeta de spam.';
   static const String authBackToLogin = 'Volver al inicio de sesión';
 
+  // Verificación de correo electrónico
+  static const String emailVerifTitle = 'Verifica tu correo electrónico';
+  static const String emailVerifSubtitlePre = 'Te enviamos un correo a ';
+  static const String emailVerifSubtitlePost =
+      '. Abre el enlace para activar tu cuenta y acceder a GGSS.cl.';
+  static const String emailVerifResend = 'Reenviar correo de verificación';
+  static const String emailVerifAlreadyDone = 'Ya verifiqué mi correo';
+  static const String emailVerifResendSuccess =
+      'Correo reenviado. Revisa tu bandeja de entrada.';
+  static const String emailVerifNotYet =
+      'Tu correo aún no ha sido verificado. Revisa tu bandeja de entrada.';
+  static const String emailVerifResendError =
+      'No se pudo reenviar el correo. Intenta nuevamente.';
+  static const String emailVerifCheckError =
+      'Error al verificar. Intenta nuevamente.';
+
   // Mensajes de error de autenticación (traducidos del inglés de Supabase)
   static const String authErrorInvalidCredentials =
       'Correo o contraseña incorrectos.';
