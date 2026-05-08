@@ -98,6 +98,7 @@ class AppStrings {
   static const String searchHint = 'Buscar en GGSS.cl...';
   static const String searchAdvanced = 'Búsqueda avanzada';
   static const String searchNoResults = 'Sin resultados para esta búsqueda.';
+  static const String searchMinChars = 'Ingresa al menos 3 caracteres para buscar.';
   static const String searchFilterJobs = 'Ofertas laborales';
   static const String searchFilterAcademic = 'Ofertas académicas';
   static const String searchFilterNews = 'Noticias';
@@ -106,7 +107,14 @@ class AppStrings {
   static const String searchFilterThisWeek = 'Esta semana';
   static const String searchFilterThisMonth = 'Este mes';
   static const String searchFilterThisYear = 'Este año';
+  static const String searchFilterAllTime = 'Todo el período';
   static const String searchFilterCustomRange = 'Rango personalizado';
+  static const String searchFilterSections = 'Secciones a buscar';
+  static const String searchFilterPeriod = 'Período de tiempo';
+  static const String searchFilterDateFrom = 'Desde';
+  static const String searchFilterDateTo = 'Hasta';
+  static const String searchApplyFilters = 'Aplicar filtros';
+  static const String searchError = 'Ocurrió un error al buscar. Intenta nuevamente.';
 
   // ----------------------------------------------------------
   // Diálogo de enlace externo
