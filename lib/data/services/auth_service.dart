@@ -70,6 +70,9 @@ class AuthService {
         'full_name': fullName.trim(),
         'rut': rut.trim(),
       },
+      // URL de redirección tras confirmar el correo.
+      // Android intercepta ggss://app con el intent-filter del Manifest.
+      emailRedirectTo: 'ggss://app',
     );
   }
 

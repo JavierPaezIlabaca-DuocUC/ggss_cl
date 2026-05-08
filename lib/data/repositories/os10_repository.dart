@@ -19,9 +19,4 @@ class Os10Repository {
     return data.map(Os10QuestionModel.fromMap).toList();
   }
 
-  /// Retorna [count] preguntas aleatorias para un simulacro
-  Future<List<Os10QuestionModel>> getRandomQuestions(int count) async {
-    final data = await _os10Service.fetchRandomQuestions(count);
-    return data.map(Os10QuestionModel.fromMap).toList();
-  }
 }

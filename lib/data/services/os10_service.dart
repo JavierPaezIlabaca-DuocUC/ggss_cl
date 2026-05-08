@@ -23,13 +23,4 @@ class Os10Service {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Obtiene [count] preguntas aleatorias para un simulacro
-  Future<List<Map<String, dynamic>>> fetchRandomQuestions(int count) async {
-    // Supabase no tiene orden aleatorio nativo: se usa la función random()
-    final response = await _client
-        .from(_tableOs10Questions)
-        .select()
-        .limit(count);
-    return List<Map<String, dynamic>>.from(response);
-  }
 }
