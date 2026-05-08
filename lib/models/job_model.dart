@@ -86,14 +86,9 @@ class JobModel {
         'salary_range': salaryRange,
       if (contactWhatsapp != null && contactWhatsapp!.isNotEmpty)
         'contact_whatsapp': contactWhatsapp,
-      if (latitude != null) 'latitude': latitude,
-      if (longitude != null) 'longitude': longitude,
       'created_by': createdBy,
     };
   }
-
-  /// Indica si este modelo tiene coordenadas GPS válidas
-  bool get hasLocation => latitude != null && longitude != null;
 
   /// Indica si tiene número de WhatsApp para contacto
   bool get hasWhatsapp =>

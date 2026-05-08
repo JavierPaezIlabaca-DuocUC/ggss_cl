@@ -284,9 +284,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       label: AppStrings.authPassword,
                       hint: AppStrings.authPasswordHint,
                       controller: _passwordController,
-                      validator: Validators.validatePassword,
+                      validator: Validators.validateStrongPassword,
                       textInputAction: TextInputAction.next,
                     ),
+
+                    const SizedBox(height: AppDimensions.spacingSm),
+
+                    // Caja informativa de requisitos de contraseña (siempre visible)
+                    const _PasswordRequirementsBox(),
 
                     const SizedBox(height: AppDimensions.spacingMd),
 
@@ -444,6 +449,42 @@ class _RutInputFormatter extends TextInputFormatter {
 // ============================================================
 // Widgets privados compartidos entre pantallas de auth
 // ============================================================
+
+/// Caja informativa de requisitos de contraseña (siempre visible)
+class _PasswordRequirementsBox extends StatelessWidget {
+  const _PasswordRequirementsBox();
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: AppColors.primaryBlue,
+        );
+
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.spacingMd),
+      decoration: BoxDecoration(
+        color: AppColors.secondaryBlue.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        border: Border.all(
+          color: AppColors.secondaryBlue.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'La contraseña debe tener:',
+            style: textStyle?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: AppDimensions.spacingXs),
+          Text('• Mínimo 8 caracteres', style: textStyle),
+          Text('• Al menos una mayúscula', style: textStyle),
+          Text('• Al menos un número', style: textStyle),
+        ],
+      ),
+    );
+  }
+}
 
 /// Banner de error con borde y fondo rojo claro
 class _AuthErrorBanner extends StatelessWidget {

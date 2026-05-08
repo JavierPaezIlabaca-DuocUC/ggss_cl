@@ -143,19 +143,6 @@ class JobDetailScreen extends ConsumerWidget {
                 onTap: () => _openWhatsApp(context),
               ),
 
-            // --------------------------------------------------
-            // Botón Google Maps (si hay coordenadas GPS)
-            // --------------------------------------------------
-            if (job.hasLocation) ...[
-              const SizedBox(height: AppDimensions.spacingSm),
-              _ActionButton(
-                icon: Icons.map_outlined,
-                label: AppStrings.jobsViewMap,
-                color: Theme.of(context).colorScheme.primary,
-                onTap: () => _openMaps(context),
-              ),
-            ],
-
             const SizedBox(height: AppDimensions.spacingXl),
           ],
         ),
@@ -172,15 +159,6 @@ class JobDetailScreen extends ConsumerWidget {
       'Hola, vi tu oferta de trabajo en GGSS.cl y me interesa',
     );
     final url = 'https://wa.me/${job.contactWhatsapp}?text=$message';
-    ExternalLinkOpener.open(context, url);
-  }
-
-  // ----------------------------------------------------------
-  // Abre Google Maps con las coordenadas de la oferta
-  // ----------------------------------------------------------
-
-  void _openMaps(BuildContext context) {
-    final url = 'https://maps.google.com/?q=${job.latitude},${job.longitude}';
     ExternalLinkOpener.open(context, url);
   }
 

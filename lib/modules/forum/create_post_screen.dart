@@ -12,6 +12,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_strings.dart';
 import '../../models/forum_post_model.dart';
+import '../../shared/widgets/required_fields_note.dart';
 import '../auth/auth_providers.dart';
 import 'forum_providers.dart';
 
@@ -121,13 +122,19 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           padding: const EdgeInsets.all(AppDimensions.spacingMd),
           children: [
             // --------------------------------------------------
+            // Indicador de campos obligatorios
+            // --------------------------------------------------
+            const RequiredFieldsNote(),
+            const SizedBox(height: AppDimensions.spacingMd),
+
+            // --------------------------------------------------
             // Campo: Título (requerido)
             // --------------------------------------------------
             TextFormField(
               controller: _titleController,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                labelText: AppStrings.forumTitleLabel,
+                labelText: '${AppStrings.forumTitleLabel} *',
                 hintText: AppStrings.forumTitleHint,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
@@ -148,7 +155,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               controller: _contentController,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                labelText: AppStrings.forumContentLabel,
+                labelText: '${AppStrings.forumContentLabel} *',
                 hintText: AppStrings.forumContentHint,
                 alignLabelWithHint: true,
                 border: OutlineInputBorder(

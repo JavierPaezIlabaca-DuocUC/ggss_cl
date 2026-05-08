@@ -41,6 +41,23 @@ class Validators {
     return null;
   }
 
+  /// Valida contraseña segura: mínimo 8 caracteres, mayúscula y número
+  static String? validateStrongPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'La contraseña es obligatoria.';
+    }
+    if (value.length < 8) {
+      return 'Debe tener al menos 8 caracteres.';
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Debe contener al menos una mayúscula.';
+    }
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Debe contener al menos un número.';
+    }
+    return null;
+  }
+
   /// Valida que la confirmación de contraseña coincida con la original
   static String? validateConfirmPassword(String? value, String password) {
     if (value == null || value.isEmpty) {

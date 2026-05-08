@@ -13,6 +13,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/validators.dart';
 import '../../models/academic_offer_model.dart';
+import '../../shared/widgets/required_fields_note.dart';
 import '../auth/auth_providers.dart';
 import 'academic_providers.dart';
 
@@ -62,6 +63,15 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
   }
 
   // ----------------------------------------------------------
+  // Validador WhatsApp opcional: 8 dígitos si se ingresa
+  // ----------------------------------------------------------
+  String? _validateOptionalWhatsapp(String? value) {
+    final digits = value?.replaceAll(' ', '').trim() ?? '';
+    if (digits.isEmpty) return null;
+    return Validators.validatePhone8Digits(digits);
+  }
+
+  // ----------------------------------------------------------
   // Envío del formulario
   // ----------------------------------------------------------
 
@@ -89,9 +99,12 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
         price: _priceController.text.trim().isEmpty
             ? null
             : _priceController.text.trim(),
-        contactWhatsapp: _whatsappController.text.trim().isEmpty
+        contactWhatsapp: _whatsappController.text
+                .replaceAll(' ', '')
+                .trim()
+                .isEmpty
             ? null
-            : _whatsappController.text.trim(),
+            : '+569${_whatsappController.text.replaceAll(' ', '').trim()}',
         url: _urlController.text.trim().isEmpty
             ? null
             : _urlController.text.trim(),
@@ -133,6 +146,12 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // --------------------------------------------------
+              // Indicador de campos obligatorios
+              // --------------------------------------------------
+              const RequiredFieldsNote(),
+              const SizedBox(height: AppDimensions.spacingMd),
+
               // --------------------------------------------------
               // Sección: Información principal
               // --------------------------------------------------
@@ -222,13 +241,10 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
               _SectionTitle(text: 'Contacto e inscripción (opcional)'),
               const SizedBox(height: AppDimensions.spacingSm),
 
-              // Número WhatsApp
-              _FormField(
+              // Número WhatsApp con prefijo +569 fijo
+              _WhatsAppField(
                 controller: _whatsappController,
-                label: 'Número WhatsApp',
-                hint: 'Ej: 56912345678 (sin + ni espacios)',
-                keyboardType: TextInputType.phone,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: _validateOptionalWhatsapp,
               ),
 
               const SizedBox(height: AppDimensions.spacingMd),
@@ -313,7 +329,6 @@ class _FormField extends StatelessWidget {
   final bool required;
   final int maxLines;
   final TextInputType? keyboardType;
-  final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
 
   const _FormField({
@@ -323,7 +338,6 @@ class _FormField extends StatelessWidget {
     this.required = false,
     this.maxLines = 1,
     this.keyboardType,
-    this.inputFormatters,
     this.validator,
   });
 
@@ -333,13 +347,62 @@ class _FormField extends StatelessWidget {
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
       validator: validator,
       decoration: InputDecoration(
         labelText: required ? '$label *' : label,
         hintText: hint,
         alignLabelWithHint: maxLines > 1,
       ),
+    );
+  }
+}
+
+/// Campo de WhatsApp con prefijo "+569" no editable y formato automático
+class _WhatsAppField extends StatelessWidget {
+  final TextEditingController controller;
+  final String? Function(String?)? validator;
+
+  const _WhatsAppField({required this.controller, this.validator});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      inputFormatters: [_PhoneDigitsFormatter()],
+      validator: validator,
+      decoration: const InputDecoration(
+        labelText: 'WhatsApp',
+        hintText: '12 34 56 78',
+        prefixText: '+569 ',
+      ),
+    );
+  }
+}
+
+/// Formatea la entrada como 8 dígitos con espacio cada 2: "12 34 56 78"
+class _PhoneDigitsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Extraer solo dígitos y limitar a 8
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limited =
+        digits.length > 8 ? digits.substring(0, 8) : digits;
+
+    // Insertar espacio cada 2 dígitos: "12 34 56 78"
+    final buffer = StringBuffer();
+    for (int i = 0; i < limited.length; i++) {
+      if (i > 0 && i % 2 == 0) buffer.write(' ');
+      buffer.write(limited[i]);
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
