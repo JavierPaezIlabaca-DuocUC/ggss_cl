@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_strings.dart';
 import '../../shared/widgets/app_header.dart';
 import '../auth/auth_providers.dart';
+import '../settings/settings_providers.dart';
 
 // Importación de las pantallas principales de cada sección
 import '../jobs/jobs_screen.dart';
@@ -41,9 +42,23 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   // ----------------------------------------------------------
-  // Estado: índice de la sección activa (0 = Ofertas laborales)
+  // Estado: índice de la sección activa
+  // Se inicializa con la sección de inicio guardada en Configuración.
   // ----------------------------------------------------------
-  int _currentSectionIndex = 0;
+  late int _currentSectionIndex;
+
+  // ----------------------------------------------------------
+  // Inicialización: leer sección de inicio desde Configuración
+  // ----------------------------------------------------------
+
+  @override
+  void initState() {
+    super.initState();
+    // Leer el índice de sección guardado en SharedPreferences a través
+    // del SettingsNotifier. ref.read es seguro en initState.
+    _currentSectionIndex =
+        ref.read(settingsNotifierProvider).defaultSectionIndex;
+  }
 
   // ----------------------------------------------------------
   // Configuración de secciones

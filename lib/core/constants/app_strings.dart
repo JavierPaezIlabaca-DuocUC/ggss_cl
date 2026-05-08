@@ -147,10 +147,15 @@ class AppStrings {
   // Configuración
   // ----------------------------------------------------------
   static const String settingsTheme = 'Tema de la aplicación';
+  static const String settingsAppearance = 'Apariencia';
   static const String settingsThemeLight = 'Modo claro';
   static const String settingsThemeDark = 'Modo oscuro';
   static const String settingsDefaultSection = 'Sección de inicio';
   static const String settingsSaved = 'Configuración guardada.';
+  static const String settingsAbout = 'Acerca de';
+  static const String settingsVersion = 'GGSS.cl v1.0.0';
+  static const String settingsDescription =
+      'Plataforma digital para guardias de seguridad privada en Chile';
 
   // ----------------------------------------------------------
   // Ofertas laborales
