@@ -19,6 +19,15 @@ class ProfileModel {
   /// URL del avatar del usuario (null = mostrar iniciales)
   final String? avatarUrl;
 
+  /// Tipo de cuenta: 'personal' o 'empresa'
+  final String accountType;
+
+  /// Teléfono de contacto con prefijo +569 (ej: +56912345678)
+  final String? phone;
+
+  /// Alias público mostrado en foro y publicaciones (opcional)
+  final String? alias;
+
   /// Fecha de creación del perfil
   final DateTime createdAt;
 
@@ -27,6 +36,9 @@ class ProfileModel {
     required this.fullName,
     required this.rut,
     this.avatarUrl,
+    this.accountType = 'personal',
+    this.phone,
+    this.alias,
     required this.createdAt,
   });
 
@@ -40,6 +52,9 @@ class ProfileModel {
       fullName: map['full_name'] as String? ?? '',
       rut: map['rut'] as String? ?? '',
       avatarUrl: map['avatar_url'] as String?,
+      accountType: map['account_type'] as String? ?? 'personal',
+      phone: map['phone'] as String?,
+      alias: map['alias'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
     );
@@ -49,12 +64,15 @@ class ProfileModel {
   // Copia con modificaciones
   // ----------------------------------------------------------
 
-  ProfileModel copyWith({String? fullName, String? avatarUrl}) {
+  ProfileModel copyWith({String? fullName, String? avatarUrl, String? alias}) {
     return ProfileModel(
       id: id,
       fullName: fullName ?? this.fullName,
       rut: rut,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      accountType: accountType,
+      phone: phone,
+      alias: alias ?? this.alias,
       createdAt: createdAt,
     );
   }

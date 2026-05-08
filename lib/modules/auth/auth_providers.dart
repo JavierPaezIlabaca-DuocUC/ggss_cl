@@ -119,12 +119,15 @@ class AuthNotifier extends StateNotifier<AuthFormState> {
   // Registro
   // ----------------------------------------------------------
 
-  /// Registra un nuevo usuario con [email], [password], [fullName] y [rut].
+  /// Registra un nuevo usuario con todos los campos del formulario.
   Future<void> signUp({
     required String email,
     required String password,
     required String fullName,
     required String rut,
+    String accountType = 'personal',
+    String? phone,
+    String? alias,
   }) async {
     state = const AuthFormState(status: AuthFormStatus.loading);
 
@@ -134,6 +137,9 @@ class AuthNotifier extends StateNotifier<AuthFormState> {
         password: password,
         fullName: fullName,
         rut: rut,
+        accountType: accountType,
+        phone: phone,
+        alias: alias,
       );
       state = const AuthFormState(status: AuthFormStatus.success);
     } on AuthException catch (e) {

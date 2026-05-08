@@ -13,6 +13,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
@@ -40,9 +41,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  // Clave de SharedPreferences para persistir la preferencia
+  static const String _keyRememberSession = 'remember_session';
+
+  // Estado del checkbox "Recordar sesión" (true = recordar por defecto)
+  bool _rememberSession = true;
+
   // ----------------------------------------------------------
-  // Ciclo de vida: liberar controladores al destruir el widget
+  // Ciclo de vida: cargar preferencia guardada y liberar controladores
   // ----------------------------------------------------------
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberSession();
+  }
+
+  Future<void> _loadRememberSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _rememberSession = prefs.getBool(_keyRememberSession) ?? true;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -61,6 +84,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     // Validar todos los campos antes de enviar
     if (!_formKey.currentState!.validate()) return;
+
+    // Persistir la preferencia de "Recordar sesión" antes de iniciar sesión
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyRememberSession, _rememberSession);
 
     // Delegar la autenticación al AuthNotifier (Riverpod)
     await ref.read(authNotifierProvider.notifier).signIn(
@@ -173,6 +200,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             : _navigateToForgotPassword,
                         child: const Text(AppStrings.authForgotPassword),
                       ),
+                    ),
+
+                    // --------------------------------------------------
+                    // Checkbox: Recordar sesión
+                    // --------------------------------------------------
+                    CheckboxListTile(
+                      value: _rememberSession,
+                      onChanged: authState.isLoading
+                          ? null
+                          : (value) => setState(
+                                () => _rememberSession = value ?? true,
+                              ),
+                      title: const Text(AppStrings.authRememberSession),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
                     ),
 
                     // Banner de error (visible solo cuando hay error)

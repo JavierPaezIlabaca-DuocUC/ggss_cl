@@ -40,11 +40,11 @@ class ForumService {
 
     if (userIds.isEmpty) return posts;
 
-    // Paso 3: obtener perfiles en lote
+    // Paso 3: obtener perfiles en lote (incluye alias para mostrarlo en el foro)
     final profiles = List<Map<String, dynamic>>.from(
       await _client
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name, alias')
           .inFilter('id', userIds),
     );
     final profileMap = {for (final p in profiles) p['id'] as String: p};
@@ -94,11 +94,11 @@ class ForumService {
 
     if (userIds.isEmpty) return comments;
 
-    // Paso 3: obtener perfiles en lote
+    // Paso 3: obtener perfiles en lote (incluye alias para mostrarlo en comentarios)
     final profiles = List<Map<String, dynamic>>.from(
       await _client
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name, alias')
           .inFilter('id', userIds),
     );
     final profileMap = {for (final p in profiles) p['id'] as String: p};

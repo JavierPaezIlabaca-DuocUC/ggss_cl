@@ -46,6 +46,7 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
 
   // Inicializar Supabase con las credenciales del proyecto GGSS.cl.
+  // Debe hacerse antes de la comprobación de remember_session.
   // authFlowType: PKCE activa el flujo seguro de código para deep links.
   // authCallbackUrlHostname: coincide con android:host del intent-filter
   // (ggss://app), permitiendo que el SDK confirme la sesión automáticamente
@@ -58,6 +59,17 @@ Future<void> main() async {
       autoRefreshToken: true,
     ),
   );
+
+  // Si el usuario no eligió "Recordar sesión", cerrar la sesión activa
+  // para que deba autenticarse nuevamente al abrir la app.
+  final rememberSession = prefs.getBool('remember_session') ?? true;
+  if (!rememberSession) {
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {
+      // Ignorar errores si no hay sesión activa
+    }
+  }
 
   // Envolver con ProviderScope e inyectar la instancia de SharedPreferences
   // para que SettingsNotifier la use sincrónicamente al construirse

@@ -227,4 +227,29 @@ class Validators {
     }
     return null;
   }
+
+  /// Valida exactamente 8 dígitos numéricos para el campo de teléfono
+  /// con prefijo +569 fijo (el campo solo captura los 8 dígitos restantes).
+  static String? validatePhone8Digits(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'El teléfono es obligatorio.';
+    }
+    final digits = value.trim();
+    if (!RegExp(r'^\d{8}$').hasMatch(digits)) {
+      return 'Ingresa exactamente 8 dígitos numéricos.';
+    }
+    return null;
+  }
+
+  /// Valida un alias público opcional: entre 3 y 30 caracteres si se ingresa.
+  static String? validateAlias(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null; // El alias es opcional
+    }
+    final trimmed = value.trim();
+    if (trimmed.length < 3 || trimmed.length > 30) {
+      return 'El alias debe tener entre 3 y 30 caracteres.';
+    }
+    return null;
+  }
 }

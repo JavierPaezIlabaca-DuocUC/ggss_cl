@@ -4,7 +4,8 @@
 // la tabla 'profiles' en Supabase.
 //
 // La tabla 'profiles' tiene columnas:
-//   id (UUID), full_name, rut, avatar_url, created_at, updated_at
+//   id (UUID), full_name, rut, avatar_url, account_type,
+//   phone, alias, created_at, updated_at
 // ============================================================
 
 import '../../models/profile_model.dart';
@@ -47,18 +48,24 @@ class ProfileService {
   // Crear perfil si no existe (llamado tras registro exitoso)
   // ----------------------------------------------------------
 
-  /// Inserta un perfil con [userId], [fullName] y [rut] si aún no existe.
+  /// Inserta un perfil si aún no existe.
   /// Usa upsert con ignoreDuplicates para evitar sobrescribir un perfil existente.
   Future<void> createProfileIfNotExists(
     String userId,
     String fullName,
-    String rut,
-  ) async {
+    String rut, {
+    String accountType = 'personal',
+    String? phone,
+    String? alias,
+  }) async {
     await _client.from(_tableProfiles).upsert(
       {
         'id': userId,
         'full_name': fullName.trim(),
         'rut': rut.trim(),
+        'account_type': accountType,
+        if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
+        if (alias != null && alias.trim().isNotEmpty) 'alias': alias.trim(),
       },
       ignoreDuplicates: true,
     );

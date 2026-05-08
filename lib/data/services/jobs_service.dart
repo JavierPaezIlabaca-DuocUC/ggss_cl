@@ -14,21 +14,21 @@ class JobsService {
   final _client = SupabaseClientProvider.client;
 
   /// Obtiene todas las ofertas laborales ordenadas por fecha (más reciente primero).
-  /// Incluye el nombre del autor vía join con 'profiles' (FK: created_by).
+  /// Incluye nombre y alias del autor vía join con 'profiles' (FK: created_by).
   Future<List<Map<String, dynamic>>> fetchAllJobs() async {
     final response = await _client
         .from(_tableJobOffers)
-        .select('*, profiles!created_by(full_name)')
+        .select('*, profiles!created_by(full_name, alias)')
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
   }
 
   /// Obtiene una oferta laboral por su [id].
-  /// Incluye el nombre del autor vía join con 'profiles' (FK: created_by).
+  /// Incluye nombre y alias del autor vía join con 'profiles' (FK: created_by).
   Future<Map<String, dynamic>?> fetchJobById(String id) async {
     final response = await _client
         .from(_tableJobOffers)
-        .select('*, profiles!created_by(full_name)')
+        .select('*, profiles!created_by(full_name, alias)')
         .eq('id', id)
         .maybeSingle();
     return response;

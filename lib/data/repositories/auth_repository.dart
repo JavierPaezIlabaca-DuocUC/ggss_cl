@@ -51,19 +51,25 @@ class AuthRepository {
     );
   }
 
-  /// Registra un nuevo usuario con nombre completo y RUT chileno.
+  /// Registra un nuevo usuario con todos los campos del formulario de registro.
   /// Tras el registro exitoso crea el perfil en la tabla 'profiles'.
   Future<AuthResponse> signUp({
     required String email,
     required String password,
     required String fullName,
     required String rut,
+    String accountType = 'personal',
+    String? phone,
+    String? alias,
   }) async {
     final response = await _authService.signUpWithEmailAndPassword(
       email: email,
       password: password,
       fullName: fullName,
       rut: rut,
+      accountType: accountType,
+      phone: phone,
+      alias: alias,
     );
 
     // Crear perfil en 'profiles' si el usuario fue creado correctamente.
@@ -74,6 +80,9 @@ class AuthRepository {
           response.user!.id,
           fullName,
           rut,
+          accountType: accountType,
+          phone: phone,
+          alias: alias,
         );
       } catch (_) {
         // Fallo silencioso — el perfil se creará en la primera visita al módulo

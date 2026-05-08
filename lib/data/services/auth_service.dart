@@ -55,13 +55,16 @@ class AuthService {
   // Registro de nueva cuenta
   // ----------------------------------------------------------
 
-  /// Registra un nuevo usuario con [email], [password], [fullName] y [rut].
-  /// Guarda el nombre completo y el RUT en los metadatos del usuario de Supabase.
+  /// Registra un nuevo usuario con los datos del formulario de registro.
+  /// Guarda nombre, RUT, tipo de cuenta y teléfono en los metadatos de Supabase.
   Future<AuthResponse> signUpWithEmailAndPassword({
     required String email,
     required String password,
     required String fullName,
     required String rut,
+    String accountType = 'personal',
+    String? phone,
+    String? alias,
   }) async {
     return await _client.auth.signUp(
       email: email.trim(),
@@ -69,6 +72,9 @@ class AuthService {
       data: {
         'full_name': fullName.trim(),
         'rut': rut.trim(),
+        'account_type': accountType,
+        if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
+        if (alias != null && alias.trim().isNotEmpty) 'alias': alias.trim(),
       },
       // URL de redirección tras confirmar el correo.
       // Android intercepta ggss://app con el intent-filter del Manifest.

@@ -150,31 +150,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   },
                 ),
 
-                const SizedBox(height: 20),
-
-                // --------------------------------------------------
-                // Campo: RUT (solo lectura)
-                // --------------------------------------------------
-                Text(
-                  AppStrings.profileRut,
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  initialValue: widget.profile.rut,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.badge_outlined),
-                    // Indicación visual de que el campo no es editable
-                    filled: true,
-                    fillColor: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.4),
-                    helperText: 'El RUT no puede modificarse.',
-                  ),
-                ),
-
                 const SizedBox(height: 32),
 
                 // --------------------------------------------------

@@ -237,7 +237,9 @@ class _ForumPostDetailScreenState
                     ),
                     const SizedBox(width: AppDimensions.spacingXs),
                     Text(
-                      widget.post.authorName ?? AppStrings.forumAnonymous,
+                      widget.post.authorAlias ??
+                          widget.post.authorName ??
+                          AppStrings.forumAnonymous,
                       style: theme.textTheme.bodySmall,
                     ),
                     const SizedBox(width: AppDimensions.spacingSm),
@@ -415,7 +417,9 @@ class _CommentItem extends StatelessWidget {
             backgroundColor:
                 theme.colorScheme.primary.withValues(alpha: 0.15),
             child: Text(
-              (comment.authorName ?? AppStrings.forumAnonymous)
+              (comment.authorAlias ??
+                      comment.authorName ??
+                      AppStrings.forumAnonymous)
                   .substring(0, 1)
                   .toUpperCase(),
               style: theme.textTheme.labelMedium?.copyWith(
@@ -443,7 +447,9 @@ class _CommentItem extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        comment.authorName ?? AppStrings.forumAnonymous,
+                        comment.authorAlias ??
+                            comment.authorName ??
+                            AppStrings.forumAnonymous,
                         style: theme.textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),

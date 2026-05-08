@@ -72,6 +72,35 @@ class AppStrings {
   static const String authRegisterSubtitle =
       'Regístrate para acceder a todas las funciones';
   static const String authForgotPasswordTitle = 'Recuperar contraseña';
+
+  // Tipo de cuenta
+  static const String authAccountType = 'Tipo de cuenta';
+  static const String authAccountTypePersonal = 'Personal';
+  static const String authAccountTypeEmpresa = 'Empresa';
+  static const String authAccountTypePersonalDesc =
+      'Guardia de seguridad privada';
+  static const String authAccountTypeEmpresaDesc =
+      'Empresa de seguridad o institución';
+
+  // Teléfono de contacto
+  static const String authPhone = 'Teléfono de contacto';
+  static const String authPhoneHint = '12345678';
+  static const String authPhoneHelper = 'Ingresa los 8 dígitos sin el prefijo';
+  static const String authPhoneRequired = 'El teléfono es obligatorio.';
+  static const String authPhoneInvalid =
+      'Ingresa exactamente 8 dígitos numéricos.';
+  static const String authPhonePrefix = '+569';
+
+  // Alias público
+  static const String authAlias = 'Alias público (opcional)';
+  static const String authAliasHint = 'Ej: GuardiaChile, Seguridad Norte...';
+  static const String authAliasHelper =
+      'Se mostrará en lugar de tu nombre en el foro y publicaciones';
+  static const String authAliasInvalid =
+      'El alias debe tener entre 3 y 30 caracteres.';
+
+  // Recordar sesión
+  static const String authRememberSession = 'Recordar sesión';
   static const String authForgotPasswordSubtitle =
       'Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.';
   static const String authRecoverySuccessTitle = '¡Correo enviado!';

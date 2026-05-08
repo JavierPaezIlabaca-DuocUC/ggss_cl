@@ -97,7 +97,9 @@ class ForumPostCard extends StatelessWidget {
                   const SizedBox(width: AppDimensions.spacingXs),
                   Expanded(
                     child: Text(
-                      post.authorName ?? AppStrings.forumAnonymous,
+                      post.authorAlias ??
+                          post.authorName ??
+                          AppStrings.forumAnonymous,
                       style: theme.textTheme.bodySmall,
                       overflow: TextOverflow.ellipsis,
                     ),
