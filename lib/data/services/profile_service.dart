@@ -5,7 +5,8 @@
 //
 // La tabla 'profiles' tiene columnas:
 //   id (UUID), full_name, rut, avatar_url, account_type,
-//   phone, alias, created_at, updated_at
+//   phone, alias, show_email, show_phone, show_posts,
+//   created_at, updated_at
 // ============================================================
 
 import '../../models/profile_model.dart';
@@ -41,6 +42,25 @@ class ProfileService {
   Future<void> updateProfile(String userId, String fullName) async {
     await _client.from(_tableProfiles).update({
       'full_name': fullName.trim(),
+    }).eq('id', userId);
+  }
+
+  // ----------------------------------------------------------
+  // Actualizar configuración de privacidad
+  // ----------------------------------------------------------
+
+  /// Actualiza las preferencias de privacidad del usuario con [userId].
+  /// Solo aplica visualmente para cuentas personales (ver PublicProfileScreen).
+  Future<void> updatePrivacySettings(
+    String userId, {
+    required bool showEmail,
+    required bool showPhone,
+    required bool showPosts,
+  }) async {
+    await _client.from(_tableProfiles).update({
+      'show_email': showEmail,
+      'show_phone': showPhone,
+      'show_posts': showPosts,
     }).eq('id', userId);
   }
 

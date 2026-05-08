@@ -19,6 +19,7 @@ import '../../models/forum_post_model.dart';
 import '../../shared/widgets/external_link_dialog.dart';
 import '../../shared/widgets/loading_indicator.dart';
 import '../auth/auth_providers.dart';
+import '../profile/public_profile_screen.dart';
 import 'forum_providers.dart';
 
 /// Pantalla de detalle de una publicación del foro
@@ -227,7 +228,7 @@ class _ForumPostDetailScreenState
                   const SizedBox(height: AppDimensions.spacingXs),
                 ],
 
-                // Post: autor y fecha
+                // Post: autor (tappeable) y fecha
                 Row(
                   children: [
                     Icon(
@@ -236,11 +237,29 @@ class _ForumPostDetailScreenState
                       color: theme.textTheme.bodySmall?.color,
                     ),
                     const SizedBox(width: AppDimensions.spacingXs),
-                    Text(
-                      widget.post.authorAlias ??
-                          widget.post.authorName ??
-                          AppStrings.forumAnonymous,
-                      style: theme.textTheme.bodySmall,
+                    // Nombre del autor — tap navega a PublicProfileScreen
+                    GestureDetector(
+                      onTap: () {
+                        if (widget.post.userId.isNotEmpty) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PublicProfileScreen(
+                                userId: widget.post.userId,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(
+                        widget.post.authorAlias ??
+                            widget.post.authorName ??
+                            AppStrings.forumAnonymous,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                          decorationColor: theme.colorScheme.primary,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: AppDimensions.spacingSm),
                     Text(

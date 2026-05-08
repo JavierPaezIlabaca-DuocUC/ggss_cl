@@ -20,6 +20,14 @@ class AcademicRepository {
     return data.map(AcademicOfferModel.fromMap).toList();
   }
 
+  /// Retorna solo las ofertas académicas creadas por [userId]
+  Future<List<AcademicOfferModel>> getAcademicOffersByUser(
+    String userId,
+  ) async {
+    final data = await _academicService.fetchAcademicOffersByUser(userId);
+    return data.map(AcademicOfferModel.fromMap).toList();
+  }
+
   /// Retorna una oferta académica por su [id]
   Future<AcademicOfferModel?> getAcademicOfferById(String id) async {
     final data = await _academicService.fetchAcademicOfferById(id);

@@ -268,6 +268,34 @@ class AppStrings {
   static const String profileFullNameRequired = 'El nombre es requerido.';
 
   // ----------------------------------------------------------
+  // Perfil público
+  // ----------------------------------------------------------
+  static const String publicProfileTitle = 'Perfil público';
+  static const String publicProfileAccountPersonal = 'Cuenta Personal';
+  static const String publicProfileAccountEmpresa = 'Cuenta Empresa';
+  static const String publicProfileMemberSince = 'Miembro desde';
+  static const String publicProfileStats = 'Publicaciones';
+  static const String publicProfileNoAlias = 'Usuario';
+
+  // ----------------------------------------------------------
+  // Privacidad
+  // ----------------------------------------------------------
+  static const String settingsPrivacy = 'Privacidad';
+  static const String settingsPrivacyShowEmail = 'Mostrar mi correo en mi perfil';
+  static const String settingsPrivacyShowPhone = 'Mostrar mi teléfono en mi perfil';
+  static const String settingsPrivacyShowPosts = 'Mostrar mis publicaciones en mi perfil';
+  static const String settingsPrivacyEmpresaNote =
+      'Las cuentas empresa siempre muestran su información públicamente.';
+  static const String settingsPrivacySaved = 'Privacidad actualizada.';
+
+  // ----------------------------------------------------------
+  // Mis publicaciones (vistas filtradas desde el perfil)
+  // ----------------------------------------------------------
+  static const String myJobsTitle = 'Mis Ofertas Laborales';
+  static const String myAcademicTitle = 'Mis Ofertas Académicas';
+  static const String myForumTitle = 'Mis Posts del Foro';
+
+  // ----------------------------------------------------------
   // Foro
   // ----------------------------------------------------------
   static const String forumCreatePost = 'Nueva publicación';

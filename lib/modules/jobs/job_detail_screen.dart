@@ -15,6 +15,7 @@ import '../../core/constants/app_strings.dart';
 import '../../models/job_model.dart';
 import '../../shared/widgets/external_link_dialog.dart';
 import '../auth/auth_providers.dart';
+import '../profile/public_profile_screen.dart';
 import 'jobs_providers.dart';
 
 /// Pantalla de detalle de una oferta laboral
@@ -97,6 +98,17 @@ class JobDetailScreen extends ConsumerWidget {
             _InfoRow(
               icon: Icons.access_time_outlined,
               text: 'Publicado ${timeago.format(job.createdAt, locale: 'es')}',
+            ),
+
+            const SizedBox(height: AppDimensions.spacingXs),
+
+            // --------------------------------------------------
+            // Autor de la publicación (tappeable → perfil público)
+            // --------------------------------------------------
+            _AuthorRow(
+              authorLabel:
+                  job.authorAlias ?? job.authorName ?? AppStrings.forumAnonymous,
+              userId: job.createdBy,
             ),
 
             const Divider(height: AppDimensions.spacingXl),
@@ -210,6 +222,48 @@ class JobDetailScreen extends ConsumerWidget {
 // ============================================================
 // Widgets internos de apoyo
 // ============================================================
+
+/// Fila del autor con nombre tappeable que navega al perfil público
+class _AuthorRow extends StatelessWidget {
+  final String authorLabel;
+  final String userId;
+
+  const _AuthorRow({required this.authorLabel, required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.person_outline,
+          size: AppDimensions.iconMd,
+          color: Theme.of(context).textTheme.bodySmall?.color,
+        ),
+        const SizedBox(width: AppDimensions.spacingSm),
+        GestureDetector(
+          onTap: () {
+            if (userId.isNotEmpty) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PublicProfileScreen(userId: userId),
+                ),
+              );
+            }
+          },
+          child: Text(
+            authorLabel,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 /// Fila de información con ícono y texto
 class _InfoRow extends StatelessWidget {

@@ -4,8 +4,10 @@
 //
 // Contiene:
 //   - forumRepositoryProvider: proveedor del repositorio
-//   - ForumPostsNotifier: AsyncNotifier para la lista de posts
+//   - ForumPostsNotifier: AsyncNotifier para la lista completa de posts
 //   - forumPostsNotifierProvider: proveedor del notifier de posts
+//   - MyForumPostsNotifier: AsyncNotifier filtrado por el usuario actual
+//   - myForumPostsNotifierProvider: proveedor (solo mis posts del foro)
 //   - ForumCommentsNotifier: FamilyAsyncNotifier para comentarios de un post
 //   - forumCommentsNotifierProvider: proveedor de comentarios (family por postId)
 // ============================================================
@@ -15,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/forum_repository.dart';
 import '../../models/forum_comment_model.dart';
 import '../../models/forum_post_model.dart';
+import '../auth/auth_providers.dart';
 
 // ----------------------------------------------------------
 // Proveedor del repositorio
@@ -26,7 +29,7 @@ final forumRepositoryProvider = Provider<ForumRepository>((ref) {
 });
 
 // ----------------------------------------------------------
-// AsyncNotifier: gestiona la lista de posts del foro
+// AsyncNotifier: gestiona la lista completa de posts del foro
 // ----------------------------------------------------------
 
 /// Notifier que mantiene y actualiza la lista de publicaciones del foro
@@ -70,6 +73,41 @@ class ForumPostsNotifier extends AsyncNotifier<List<ForumPostModel>> {
 final forumPostsNotifierProvider =
     AsyncNotifierProvider<ForumPostsNotifier, List<ForumPostModel>>(
   ForumPostsNotifier.new,
+);
+
+// ----------------------------------------------------------
+// AsyncNotifier: gestiona los posts del foro del usuario actual
+// ----------------------------------------------------------
+
+/// Notifier que muestra solo los posts del foro del usuario autenticado.
+/// Usado al tocar la tarjeta de estadísticas en el perfil.
+class MyForumPostsNotifier extends AsyncNotifier<List<ForumPostModel>> {
+  @override
+  Future<List<ForumPostModel>> build() {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return Future.value([]);
+    return ref.read(forumRepositoryProvider).getPostsByUser(user.id);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() {
+      final user = ref.read(currentUserProvider);
+      if (user == null) return Future.value([]);
+      return ref.read(forumRepositoryProvider).getPostsByUser(user.id);
+    });
+  }
+
+  Future<void> deletePost(String id) async {
+    await ref.read(forumRepositoryProvider).deletePost(id);
+    await refresh();
+  }
+}
+
+/// Proveedor de los posts del foro publicados por el usuario autenticado
+final myForumPostsNotifierProvider =
+    AsyncNotifierProvider<MyForumPostsNotifier, List<ForumPostModel>>(
+  MyForumPostsNotifier.new,
 );
 
 // ----------------------------------------------------------

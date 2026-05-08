@@ -6,7 +6,9 @@
 //   - profileRepositoryProvider: proveedor del repositorio
 //   - ProfileNotifier: AsyncNotifier para el perfil del usuario actual
 //   - profileNotifierProvider: proveedor del notifier de perfil
-//   - profileStatsProvider: FutureProvider para estadísticas del usuario
+//   - profileStatsProvider: FutureProvider para estadísticas del usuario actual
+//   - publicProfileProvider: FutureProvider.family para perfil público por userId
+//   - publicProfileStatsProvider: FutureProvider.family para stats por userId
 // ============================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,6 +82,33 @@ class ProfileNotifier extends AsyncNotifier<ProfileModel?> {
   }
 
   // ----------------------------------------------------------
+  // Actualiza la configuración de privacidad y recarga
+  // ----------------------------------------------------------
+
+  /// Actualiza los ajustes de privacidad del usuario autenticado.
+  Future<void> updatePrivacySettings({
+    required bool showEmail,
+    required bool showPhone,
+    required bool showPosts,
+  }) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+
+    try {
+      await ref.read(profileRepositoryProvider).updatePrivacySettings(
+        user.id,
+        showEmail: showEmail,
+        showPhone: showPhone,
+        showPosts: showPosts,
+      );
+      await refresh();
+    } catch (_) {
+      // Si falla, recargar el estado original desde Supabase
+      await refresh();
+    }
+  }
+
+  // ----------------------------------------------------------
   // Carga interna del perfil
   // ----------------------------------------------------------
 
@@ -97,13 +126,36 @@ final profileNotifierProvider =
 );
 
 // ----------------------------------------------------------
-// FutureProvider: estadísticas de publicaciones del usuario
+// FutureProvider: estadísticas del usuario autenticado
 // ----------------------------------------------------------
 
 /// Proveedor de estadísticas de publicaciones del usuario autenticado.
 /// Se recalcula automáticamente cuando cambia el usuario actual.
-final profileStatsProvider = FutureProvider.autoDispose<ProfileStats>((ref) async {
+final profileStatsProvider =
+    FutureProvider.autoDispose<ProfileStats>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return ProfileStats.empty;
   return ref.read(profileRepositoryProvider).getStats(user.id);
+});
+
+// ----------------------------------------------------------
+// FutureProvider.family: perfil público por userId
+// ----------------------------------------------------------
+
+/// Obtiene el perfil público de cualquier usuario por su [userId].
+/// Usado por PublicProfileScreen para mostrar perfiles de otros usuarios.
+final publicProfileProvider =
+    FutureProvider.autoDispose.family<ProfileModel?, String>((ref, userId) {
+  return ref.read(profileRepositoryProvider).getProfile(userId);
+});
+
+// ----------------------------------------------------------
+// FutureProvider.family: estadísticas públicas por userId
+// ----------------------------------------------------------
+
+/// Obtiene las estadísticas de publicaciones de cualquier usuario por su [userId].
+/// Aplicado junto con las reglas de privacidad en PublicProfileScreen.
+final publicProfileStatsProvider =
+    FutureProvider.autoDispose.family<ProfileStats, String>((ref, userId) {
+  return ref.read(profileRepositoryProvider).getStats(userId);
 });

@@ -20,6 +20,12 @@ class JobsRepository {
     return data.map(JobModel.fromMap).toList();
   }
 
+  /// Retorna solo las ofertas laborales creadas por [userId]
+  Future<List<JobModel>> getJobsByUser(String userId) async {
+    final data = await _jobsService.fetchJobsByUser(userId);
+    return data.map(JobModel.fromMap).toList();
+  }
+
   /// Retorna una oferta laboral por su [id]
   Future<JobModel?> getJobById(String id) async {
     final data = await _jobsService.fetchJobById(id);

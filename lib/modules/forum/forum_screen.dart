@@ -2,7 +2,14 @@
 // forum_screen.dart
 // Pantalla principal del foro comunitario.
 // Muestra la lista de publicaciones desde Supabase con
-// pull-to-refresh. Embebida dentro de MainShell (sin Scaffold).
+// pull-to-refresh.
+//
+// Modos de uso:
+//   - isOwnPosts = false (por defecto): embebida en MainShell,
+//     muestra todos los posts. Sin Scaffold propio.
+//   - isOwnPosts = true: ruta independiente empujada desde el
+//     perfil del usuario. Muestra solo sus posts.
+//     Incluye Scaffold propio con AppBar.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -15,36 +22,42 @@ import '../../shared/widgets/loading_indicator.dart';
 import 'forum_providers.dart';
 import 'widgets/forum_post_card.dart';
 
-/// Pantalla principal del foro comunitario (embebida en MainShell)
+/// Pantalla del foro comunitario — admite vista completa o filtrada por usuario
 class ForumScreen extends ConsumerWidget {
-  const ForumScreen({super.key});
+  /// Cuando es true, muestra solo los posts del usuario autenticado
+  final bool isOwnPosts;
+
+  const ForumScreen({super.key, this.isOwnPosts = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final postsAsync = ref.watch(forumPostsNotifierProvider);
+    // Seleccionar el proveedor correcto según el modo
+    final postsAsync = isOwnPosts
+        ? ref.watch(myForumPostsNotifierProvider)
+        : ref.watch(forumPostsNotifierProvider);
 
-    return postsAsync.when(
-      // ----------------------------------------------------------
+    // ----------------------------------------------------------
+    // Construir el contenido de la lista
+    // ----------------------------------------------------------
+    Widget content = postsAsync.when(
       // Estado de carga
-      // ----------------------------------------------------------
       loading: () => const LoadingIndicator(),
 
-      // ----------------------------------------------------------
       // Estado de error con reintento
-      // ----------------------------------------------------------
       error: (error, _) => AppErrorWidget(
         message: AppStrings.errorGeneral,
-        onRetry: () => ref.read(forumPostsNotifierProvider.notifier).refresh(),
+        onRetry: () => isOwnPosts
+            ? ref.read(myForumPostsNotifierProvider.notifier).refresh()
+            : ref.read(forumPostsNotifierProvider.notifier).refresh(),
       ),
 
-      // ----------------------------------------------------------
       // Datos cargados: lista o estado vacío
-      // ----------------------------------------------------------
       data: (posts) => RefreshIndicator(
-        onRefresh: () =>
-            ref.read(forumPostsNotifierProvider.notifier).refresh(),
+        onRefresh: () => isOwnPosts
+            ? ref.read(myForumPostsNotifierProvider.notifier).refresh()
+            : ref.read(forumPostsNotifierProvider.notifier).refresh(),
         child: posts.isEmpty
-            ? _EmptyForumList()
+            ? _EmptyForumList(isOwnPosts: isOwnPosts)
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -54,6 +67,22 @@ class ForumScreen extends ConsumerWidget {
               ),
       ),
     );
+
+    // ----------------------------------------------------------
+    // Modo "mis publicaciones": envolver en Scaffold con AppBar
+    // ----------------------------------------------------------
+    if (isOwnPosts) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(AppStrings.myForumTitle),
+          centerTitle: true,
+        ),
+        body: content,
+      );
+    }
+
+    // Modo normal: sin Scaffold (embebida en MainShell)
+    return content;
   }
 }
 
@@ -62,14 +91,20 @@ class ForumScreen extends ConsumerWidget {
 // ============================================================
 
 class _EmptyForumList extends StatelessWidget {
+  final bool isOwnPosts;
+
+  const _EmptyForumList({this.isOwnPosts = false});
+
   @override
   Widget build(BuildContext context) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         SizedBox(height: MediaQuery.of(context).size.height * 0.25),
-        const EmptyStateWidget(
-          message: AppStrings.forumNoPosts,
+        EmptyStateWidget(
+          message: isOwnPosts
+              ? 'Aún no has publicado en el foro.'
+              : AppStrings.forumNoPosts,
           icon: Icons.chat_bubble_outline,
         ),
       ],

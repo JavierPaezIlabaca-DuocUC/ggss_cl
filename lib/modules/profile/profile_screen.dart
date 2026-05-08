@@ -1,8 +1,9 @@
 // ============================================================
 // profile_screen.dart
 // Pantalla de perfil del usuario autenticado.
-// Muestra: nombre, RUT, correo, avatar con iniciales,
-// estadísticas de publicaciones y botones de acción.
+// Muestra: alias (nombre principal), nombre real debajo,
+// correo, avatar con iniciales, estadísticas de publicaciones
+// clickeables, y botones de acción.
 // Se abre sobre el shell principal al tocar el avatar.
 // ============================================================
 
@@ -14,8 +15,11 @@ import '../../core/constants/app_strings.dart';
 import '../../models/profile_model.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../shared/widgets/loading_indicator.dart';
+import '../academic/academic_screen.dart';
 import '../auth/auth_providers.dart';
 import '../auth/login_screen.dart';
+import '../forum/forum_screen.dart';
+import '../jobs/jobs_screen.dart';
 import 'edit_profile_screen.dart';
 import 'profile_providers.dart';
 
@@ -59,27 +63,49 @@ class ProfileScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // --------------------------------------------------
-              // Avatar con iniciales o imagen
+              // Avatar con iniciales
               // --------------------------------------------------
               _ProfileAvatar(
-                fullName: profile?.fullName,
+                displayName: profile?.alias ?? profile?.fullName,
                 avatarUrl: profile?.avatarUrl,
               ),
 
               const SizedBox(height: 16),
 
               // --------------------------------------------------
-              // Nombre completo
+              // Alias (nombre principal, prominente)
               // --------------------------------------------------
               Text(
-                profile?.fullName.isNotEmpty == true
-                    ? profile!.fullName
-                    : 'Usuario',
+                profile?.alias?.isNotEmpty == true
+                    ? profile!.alias!
+                    : (profile?.fullName.isNotEmpty == true
+                        ? profile!.fullName
+                        : 'Usuario'),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                 textAlign: TextAlign.center,
               ),
+
+              // --------------------------------------------------
+              // Nombre completo real (solo en el perfil propio,
+              // debajo del alias en texto gris más pequeño)
+              // --------------------------------------------------
+              if (profile?.alias?.isNotEmpty == true &&
+                  profile?.fullName.isNotEmpty == true) ...[
+                const SizedBox(height: 4),
+                Text(
+                  profile!.fullName,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.color
+                            ?.withValues(alpha: 0.6),
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
 
               const SizedBox(height: 4),
 
@@ -98,23 +124,6 @@ class ProfileScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 4),
-
-              // --------------------------------------------------
-              // RUT
-              // --------------------------------------------------
-              if (profile?.rut.isNotEmpty == true)
-                Text(
-                  'RUT: ${profile!.rut}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.color
-                            ?.withValues(alpha: 0.6),
-                      ),
-                ),
-
               const SizedBox(height: 28),
 
               const Divider(),
@@ -122,7 +131,7 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               // --------------------------------------------------
-              // Estadísticas de publicaciones
+              // Estadísticas de publicaciones (clickeables)
               // --------------------------------------------------
               Text(
                 AppStrings.profileStats,
@@ -140,7 +149,27 @@ class ProfileScreen extends ConsumerWidget {
                   child: LoadingIndicator(),
                 ),
                 error: (err, st) => const SizedBox.shrink(),
-                data: (stats) => _StatsRow(stats: stats),
+                data: (stats) => _StatsRow(
+                  stats: stats,
+                  onTapJobs: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const JobsScreen(isOwnPosts: true),
+                    ),
+                  ),
+                  onTapAcademic: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const AcademicScreen(isOwnPosts: true),
+                    ),
+                  ),
+                  onTapForum: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const ForumScreen(isOwnPosts: true),
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -246,18 +275,18 @@ class ProfileScreen extends ConsumerWidget {
 }
 
 // ============================================================
-// Widget: avatar circular con iniciales o imagen de red
+// Widget: avatar circular con iniciales
 // ============================================================
 
 class _ProfileAvatar extends StatelessWidget {
-  final String? fullName;
+  final String? displayName;
   final String? avatarUrl;
 
-  const _ProfileAvatar({this.fullName, this.avatarUrl});
+  const _ProfileAvatar({this.displayName, this.avatarUrl});
 
   @override
   Widget build(BuildContext context) {
-    final initials = _getInitials(fullName);
+    final initials = _getInitials(displayName);
 
     return CircleAvatar(
       radius: 48,
@@ -276,7 +305,7 @@ class _ProfileAvatar extends StatelessWidget {
     );
   }
 
-  /// Genera las iniciales desde el nombre completo (máximo 2 letras).
+  /// Genera las iniciales desde el nombre (máximo 2 letras).
   String _getInitials(String? name) {
     if (name == null || name.trim().isEmpty) return '?';
     final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
@@ -286,13 +315,21 @@ class _ProfileAvatar extends StatelessWidget {
 }
 
 // ============================================================
-// Widget: fila de estadísticas con 3 contadores
+// Widget: fila de estadísticas con 3 contadores clickeables
 // ============================================================
 
 class _StatsRow extends StatelessWidget {
   final ProfileStats stats;
+  final VoidCallback onTapJobs;
+  final VoidCallback onTapAcademic;
+  final VoidCallback onTapForum;
 
-  const _StatsRow({required this.stats});
+  const _StatsRow({
+    required this.stats,
+    required this.onTapJobs,
+    required this.onTapAcademic,
+    required this.onTapForum,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -304,6 +341,7 @@ class _StatsRow extends StatelessWidget {
             count: stats.jobCount,
             label: AppStrings.profileJobsPosted,
             icon: Icons.work_outline,
+            onTap: onTapJobs,
           ),
         ),
         const SizedBox(width: 8),
@@ -313,6 +351,7 @@ class _StatsRow extends StatelessWidget {
             count: stats.academicCount,
             label: AppStrings.profileAcademicPosted,
             icon: Icons.school_outlined,
+            onTap: onTapAcademic,
           ),
         ),
         const SizedBox(width: 8),
@@ -322,6 +361,7 @@ class _StatsRow extends StatelessWidget {
             count: stats.forumCount,
             label: AppStrings.profileForumPosts,
             icon: Icons.chat_bubble_outline,
+            onTap: onTapForum,
           ),
         ),
       ],
@@ -330,44 +370,54 @@ class _StatsRow extends StatelessWidget {
 }
 
 // ============================================================
-// Widget: tarjeta individual de estadística
+// Widget: tarjeta individual de estadística (toca para ver lista)
 // ============================================================
 
 class _StatCard extends StatelessWidget {
   final int count;
   final String label;
   final IconData icon;
+  final VoidCallback onTap;
 
   const _StatCard({
     required this.count,
     required this.label,
     required this.icon,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
-            const SizedBox(height: 6),
-            Text(
-              '$count',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelSmall,
-              textAlign: TextAlign.center,
-            ),
-          ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: Theme.of(context).colorScheme.primary,
+                size: 24,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$count',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelSmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );

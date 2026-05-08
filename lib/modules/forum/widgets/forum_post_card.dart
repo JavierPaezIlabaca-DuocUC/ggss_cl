@@ -2,6 +2,7 @@
 // forum_post_card.dart
 // Tarjeta de resumen de una publicación del foro.
 // Al tocarla navega a ForumPostDetailScreen.
+// El nombre del autor es tappeable y navega a PublicProfileScreen.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../models/forum_post_model.dart';
+import '../../profile/public_profile_screen.dart';
 import '../forum_post_detail_screen.dart';
 
 /// Tarjeta de publicación del foro para mostrar en la lista
@@ -22,6 +24,8 @@ class ForumPostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final authorLabel =
+        post.authorAlias ?? post.authorName ?? AppStrings.forumAnonymous;
 
     return Card(
       child: InkWell(
@@ -84,24 +88,32 @@ class ForumPostCard extends StatelessWidget {
               const SizedBox(height: AppDimensions.spacingSm),
 
               // --------------------------------------------------
-              // Fila inferior: autor, tiempo y contador de comentarios
+              // Fila inferior: autor tappeable, tiempo, comentarios
               // --------------------------------------------------
               Row(
                 children: [
-                  // Ícono y nombre del autor
+                  // Ícono del autor
                   Icon(
                     Icons.person_outline,
                     size: AppDimensions.iconSm,
                     color: theme.textTheme.bodySmall?.color,
                   ),
                   const SizedBox(width: AppDimensions.spacingXs),
+
+                  // Nombre del autor — tap navega a PublicProfileScreen
                   Expanded(
-                    child: Text(
-                      post.authorAlias ??
-                          post.authorName ??
-                          AppStrings.forumAnonymous,
-                      style: theme.textTheme.bodySmall,
-                      overflow: TextOverflow.ellipsis,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _openAuthorProfile(context),
+                      child: Text(
+                        authorLabel,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                          decorationColor: theme.colorScheme.primary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
 
@@ -139,6 +151,15 @@ class ForumPostCard extends StatelessWidget {
   void _openDetail(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => ForumPostDetailScreen(post: post)),
+    );
+  }
+
+  void _openAuthorProfile(BuildContext context) {
+    if (post.userId.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(userId: post.userId),
+      ),
     );
   }
 }

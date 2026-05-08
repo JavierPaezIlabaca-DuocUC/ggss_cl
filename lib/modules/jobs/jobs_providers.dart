@@ -5,13 +5,16 @@
 // Contiene:
 //   - jobsRepositoryProvider: proveedor del repositorio
 //   - JobsNotifier: AsyncNotifier con fetch, refresh, create y delete
-//   - jobsNotifierProvider: proveedor del notifier
+//   - jobsNotifierProvider: proveedor del notifier (lista completa)
+//   - MyJobsNotifier: AsyncNotifier filtrado por el usuario actual
+//   - myJobsNotifierProvider: proveedor del notifier (solo mis ofertas)
 // ============================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/jobs_repository.dart';
 import '../../models/job_model.dart';
+import '../auth/auth_providers.dart';
 
 // ----------------------------------------------------------
 // Proveedor del repositorio
@@ -23,7 +26,7 @@ final jobsRepositoryProvider = Provider<JobsRepository>((ref) {
 });
 
 // ----------------------------------------------------------
-// AsyncNotifier: gestiona la lista de ofertas laborales
+// AsyncNotifier: gestiona la lista completa de ofertas laborales
 // ----------------------------------------------------------
 
 /// Notifier que mantiene y actualiza la lista de ofertas laborales
@@ -68,4 +71,39 @@ class JobsNotifier extends AsyncNotifier<List<JobModel>> {
 final jobsNotifierProvider =
     AsyncNotifierProvider<JobsNotifier, List<JobModel>>(
   JobsNotifier.new,
+);
+
+// ----------------------------------------------------------
+// AsyncNotifier: gestiona las ofertas del usuario autenticado
+// ----------------------------------------------------------
+
+/// Notifier que muestra solo las ofertas laborales del usuario actual.
+/// Usado al tocar la tarjeta de estadísticas en el perfil.
+class MyJobsNotifier extends AsyncNotifier<List<JobModel>> {
+  @override
+  Future<List<JobModel>> build() {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return Future.value([]);
+    return ref.read(jobsRepositoryProvider).getJobsByUser(user.id);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() {
+      final user = ref.read(currentUserProvider);
+      if (user == null) return Future.value([]);
+      return ref.read(jobsRepositoryProvider).getJobsByUser(user.id);
+    });
+  }
+
+  Future<void> deleteJob(String id) async {
+    await ref.read(jobsRepositoryProvider).deleteJob(id);
+    await refresh();
+  }
+}
+
+/// Proveedor de las ofertas laborales publicadas por el usuario autenticado
+final myJobsNotifierProvider =
+    AsyncNotifierProvider<MyJobsNotifier, List<JobModel>>(
+  MyJobsNotifier.new,
 );

@@ -2,7 +2,13 @@
 // jobs_screen.dart
 // Pantalla principal de ofertas laborales.
 // Muestra la lista de ofertas desde Supabase con pull-to-refresh.
-// Embebida dentro de MainShell (sin Scaffold propio).
+//
+// Modos de uso:
+//   - isOwnPosts = false (por defecto): embebida en MainShell,
+//     muestra todas las ofertas. Sin Scaffold propio.
+//   - isOwnPosts = true: ruta independiente empujada desde el
+//     perfil del usuario. Muestra solo sus publicaciones.
+//     Incluye Scaffold propio con AppBar.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -15,35 +21,42 @@ import '../../shared/widgets/loading_indicator.dart';
 import 'jobs_providers.dart';
 import 'widgets/job_card.dart';
 
-/// Pantalla principal de ofertas laborales (embebida en MainShell)
+/// Pantalla de ofertas laborales — admite vista completa o filtrada por usuario
 class JobsScreen extends ConsumerWidget {
-  const JobsScreen({super.key});
+  /// Cuando es true, muestra solo las publicaciones del usuario autenticado
+  final bool isOwnPosts;
+
+  const JobsScreen({super.key, this.isOwnPosts = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final jobsAsync = ref.watch(jobsNotifierProvider);
+    // Seleccionar el proveedor correcto según el modo
+    final jobsAsync = isOwnPosts
+        ? ref.watch(myJobsNotifierProvider)
+        : ref.watch(jobsNotifierProvider);
 
-    return jobsAsync.when(
-      // ----------------------------------------------------------
+    // ----------------------------------------------------------
+    // Construir el contenido de la lista
+    // ----------------------------------------------------------
+    Widget content = jobsAsync.when(
       // Estado de carga: indicador centrado
-      // ----------------------------------------------------------
       loading: () => const LoadingIndicator(),
 
-      // ----------------------------------------------------------
       // Estado de error: mensaje con opción de reintento
-      // ----------------------------------------------------------
       error: (error, _) => AppErrorWidget(
         message: AppStrings.errorGeneral,
-        onRetry: () => ref.read(jobsNotifierProvider.notifier).refresh(),
+        onRetry: () => isOwnPosts
+            ? ref.read(myJobsNotifierProvider.notifier).refresh()
+            : ref.read(jobsNotifierProvider.notifier).refresh(),
       ),
 
-      // ----------------------------------------------------------
       // Datos cargados: lista o estado vacío
-      // ----------------------------------------------------------
       data: (jobs) => RefreshIndicator(
-        onRefresh: () => ref.read(jobsNotifierProvider.notifier).refresh(),
+        onRefresh: () => isOwnPosts
+            ? ref.read(myJobsNotifierProvider.notifier).refresh()
+            : ref.read(jobsNotifierProvider.notifier).refresh(),
         child: jobs.isEmpty
-            ? _EmptyJobsList()
+            ? _EmptyJobsList(isOwnPosts: isOwnPosts)
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -52,23 +65,44 @@ class JobsScreen extends ConsumerWidget {
               ),
       ),
     );
+
+    // ----------------------------------------------------------
+    // Modo "mis publicaciones": envolver en Scaffold con AppBar
+    // ----------------------------------------------------------
+    if (isOwnPosts) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(AppStrings.myJobsTitle),
+          centerTitle: true,
+        ),
+        body: content,
+      );
+    }
+
+    // Modo normal: sin Scaffold (embebida en MainShell)
+    return content;
   }
 }
 
 // ============================================================
-// Widget interno: estado vacío scrolleable (necesario para
-// que RefreshIndicator funcione sin contenido)
+// Estado vacío scrolleable (necesario para RefreshIndicator)
 // ============================================================
 
 class _EmptyJobsList extends StatelessWidget {
+  final bool isOwnPosts;
+
+  const _EmptyJobsList({this.isOwnPosts = false});
+
   @override
   Widget build(BuildContext context) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         SizedBox(height: MediaQuery.of(context).size.height * 0.25),
-        const EmptyStateWidget(
-          message: AppStrings.jobsNoOffers,
+        EmptyStateWidget(
+          message: isOwnPosts
+              ? 'Aún no has publicado ofertas laborales.'
+              : AppStrings.jobsNoOffers,
           icon: Icons.work_outline,
         ),
       ],

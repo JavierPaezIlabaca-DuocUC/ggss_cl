@@ -28,6 +28,21 @@ class ProfileRepository {
     return _profileService.updateProfile(userId, fullName);
   }
 
+  /// Actualiza la configuración de privacidad del usuario con [userId].
+  Future<void> updatePrivacySettings(
+    String userId, {
+    required bool showEmail,
+    required bool showPhone,
+    required bool showPosts,
+  }) {
+    return _profileService.updatePrivacySettings(
+      userId,
+      showEmail: showEmail,
+      showPhone: showPhone,
+      showPosts: showPosts,
+    );
+  }
+
   /// Inserta el perfil si aún no existe (llamado tras registro exitoso).
   Future<void> createProfileIfNotExists(
     String userId,

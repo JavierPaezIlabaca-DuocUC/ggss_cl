@@ -23,6 +23,17 @@ class JobsService {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  /// Obtiene solo las ofertas laborales creadas por [userId].
+  /// Usado en la vista "Mis publicaciones" del perfil.
+  Future<List<Map<String, dynamic>>> fetchJobsByUser(String userId) async {
+    final response = await _client
+        .from(_tableJobOffers)
+        .select('*, profiles!created_by(full_name, alias)')
+        .eq('created_by', userId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
   /// Obtiene una oferta laboral por su [id].
   /// Incluye nombre y alias del autor vía join con 'profiles' (FK: created_by).
   Future<Map<String, dynamic>?> fetchJobById(String id) async {

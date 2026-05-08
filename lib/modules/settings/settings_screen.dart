@@ -6,7 +6,8 @@
 // Secciones:
 //   1. Apariencia — selector de tema (claro / oscuro)
 //   2. Sección de inicio — dropdown con las 5 secciones
-//   3. Acerca de — versión y descripción de la app
+//   3. Privacidad — toggles visibles / ocultos por tipo de cuenta
+//   4. Acerca de — versión y descripción de la app
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
+import '../profile/profile_providers.dart';
 import 'settings_providers.dart';
 
 /// Pantalla de configuración (se muestra sobre el shell principal)
@@ -35,6 +37,10 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsNotifierProvider);
     final notifier = ref.read(settingsNotifierProvider.notifier);
+
+    // Leer el perfil para obtener tipo de cuenta y ajustes de privacidad
+    final profileAsync = ref.watch(profileNotifierProvider);
+    final profile = profileAsync.value;
 
     return Scaffold(
       appBar: AppBar(
@@ -122,7 +128,106 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 8),
 
           // --------------------------------------------------
-          // Sección 3: Acerca de
+          // Sección 3: Privacidad
+          // --------------------------------------------------
+          _SectionHeader(label: AppStrings.settingsPrivacy),
+
+          const SizedBox(height: 10),
+
+          // Mostrar el bloque de privacidad según tipo de cuenta
+          if (profile == null)
+            // Perfil aún cargando: mostrar indicador
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(),
+            )
+          else if (profile.isEmpresa)
+            // Cuenta empresa: mensaje informativo (sin toggles)
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.business_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        AppStrings.settingsPrivacyEmpresaNote,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            // Cuenta personal: tres toggles de privacidad
+            Card(
+              margin: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  // Toggle: mostrar correo
+                  SwitchListTile(
+                    value: profile.showEmail,
+                    onChanged: (value) =>
+                        ref.read(profileNotifierProvider.notifier)
+                            .updatePrivacySettings(
+                          showEmail: value,
+                          showPhone: profile.showPhone,
+                          showPosts: profile.showPosts,
+                        ),
+                    title: const Text(AppStrings.settingsPrivacyShowEmail),
+                    secondary: const Icon(Icons.email_outlined),
+                    dense: true,
+                  ),
+
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+
+                  // Toggle: mostrar teléfono
+                  SwitchListTile(
+                    value: profile.showPhone,
+                    onChanged: (value) =>
+                        ref.read(profileNotifierProvider.notifier)
+                            .updatePrivacySettings(
+                          showEmail: profile.showEmail,
+                          showPhone: value,
+                          showPosts: profile.showPosts,
+                        ),
+                    title: const Text(AppStrings.settingsPrivacyShowPhone),
+                    secondary: const Icon(Icons.phone_outlined),
+                    dense: true,
+                  ),
+
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+
+                  // Toggle: mostrar publicaciones
+                  SwitchListTile(
+                    value: profile.showPosts,
+                    onChanged: (value) =>
+                        ref.read(profileNotifierProvider.notifier)
+                            .updatePrivacySettings(
+                          showEmail: profile.showEmail,
+                          showPhone: profile.showPhone,
+                          showPosts: value,
+                        ),
+                    title: const Text(AppStrings.settingsPrivacyShowPosts),
+                    secondary: const Icon(Icons.article_outlined),
+                    dense: true,
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 8),
+
+          // --------------------------------------------------
+          // Sección 4: Acerca de
           // --------------------------------------------------
           _SectionHeader(label: AppStrings.settingsAbout),
 

@@ -24,6 +24,12 @@ class ForumRepository {
     return data.map(ForumPostModel.fromMap).toList();
   }
 
+  /// Retorna solo los posts del foro creados por [userId]
+  Future<List<ForumPostModel>> getPostsByUser(String userId) async {
+    final data = await _forumService.fetchPostsByUser(userId);
+    return data.map(ForumPostModel.fromMap).toList();
+  }
+
   /// Crea un nuevo post en el foro
   Future<void> createPost(ForumPostModel post) async {
     await _forumService.createPost(post.toMap());

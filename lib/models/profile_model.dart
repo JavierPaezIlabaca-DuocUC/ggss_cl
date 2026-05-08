@@ -31,6 +31,19 @@ class ProfileModel {
   /// Fecha de creación del perfil
   final DateTime createdAt;
 
+  // ----------------------------------------------------------
+  // Configuración de privacidad (cuentas personales)
+  // ----------------------------------------------------------
+
+  /// Mostrar correo en perfil público (solo aplica a cuentas personales)
+  final bool showEmail;
+
+  /// Mostrar teléfono en perfil público (solo aplica a cuentas personales)
+  final bool showPhone;
+
+  /// Mostrar estadísticas de publicaciones en perfil público
+  final bool showPosts;
+
   const ProfileModel({
     required this.id,
     required this.fullName,
@@ -40,6 +53,9 @@ class ProfileModel {
     this.phone,
     this.alias,
     required this.createdAt,
+    this.showEmail = false,
+    this.showPhone = false,
+    this.showPosts = true,
   });
 
   // ----------------------------------------------------------
@@ -57,6 +73,9 @@ class ProfileModel {
       alias: map['alias'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
+      showEmail: map['show_email'] as bool? ?? false,
+      showPhone: map['show_phone'] as bool? ?? false,
+      showPosts: map['show_posts'] as bool? ?? true,
     );
   }
 
@@ -64,7 +83,14 @@ class ProfileModel {
   // Copia con modificaciones
   // ----------------------------------------------------------
 
-  ProfileModel copyWith({String? fullName, String? avatarUrl, String? alias}) {
+  ProfileModel copyWith({
+    String? fullName,
+    String? avatarUrl,
+    String? alias,
+    bool? showEmail,
+    bool? showPhone,
+    bool? showPosts,
+  }) {
     return ProfileModel(
       id: id,
       fullName: fullName ?? this.fullName,
@@ -74,8 +100,14 @@ class ProfileModel {
       phone: phone,
       alias: alias ?? this.alias,
       createdAt: createdAt,
+      showEmail: showEmail ?? this.showEmail,
+      showPhone: showPhone ?? this.showPhone,
+      showPosts: showPosts ?? this.showPosts,
     );
   }
+
+  /// Indica si la cuenta es de tipo empresa
+  bool get isEmpresa => accountType == 'empresa';
 }
 
 // ============================================================

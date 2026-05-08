@@ -23,15 +23,34 @@ class ForumService {
   /// Incluye el nombre del autor (lookup manual a 'profiles' por created_by)
   /// y el conteo de comentarios embebido desde 'forum_comments'.
   Future<List<Map<String, dynamic>>> fetchAllPosts() async {
-    // Paso 1: obtener posts con conteo de comentarios
-    final posts = List<Map<String, dynamic>>.from(
+    return _fetchPostsWithProfiles(
       await _client
           .from(_tableForumPosts)
           .select('*, forum_comments(count)')
           .order('created_at', ascending: false),
     );
+  }
 
-    // Paso 2: IDs únicos de autores
+  /// Obtiene solo los posts creados por [userId], más reciente primero.
+  /// Usado en la vista "Mis publicaciones" del perfil.
+  Future<List<Map<String, dynamic>>> fetchPostsByUser(String userId) async {
+    return _fetchPostsWithProfiles(
+      await _client
+          .from(_tableForumPosts)
+          .select('*, forum_comments(count)')
+          .eq('created_by', userId)
+          .order('created_at', ascending: false),
+    );
+  }
+
+  /// Enriquece una lista de posts con los datos de perfil de sus autores.
+  /// Evita N consultas haciendo un único select por lote de IDs.
+  Future<List<Map<String, dynamic>>> _fetchPostsWithProfiles(
+    dynamic rawPosts,
+  ) async {
+    final posts = List<Map<String, dynamic>>.from(rawPosts as List);
+
+    // IDs únicos de autores
     final userIds = posts
         .map((p) => p['created_by'] as String?)
         .whereType<String>()
@@ -40,7 +59,7 @@ class ForumService {
 
     if (userIds.isEmpty) return posts;
 
-    // Paso 3: obtener perfiles en lote (incluye alias para mostrarlo en el foro)
+    // Obtener perfiles en lote (incluye alias para mostrarlo en el foro)
     final profiles = List<Map<String, dynamic>>.from(
       await _client
           .from('profiles')
@@ -49,7 +68,7 @@ class ForumService {
     );
     final profileMap = {for (final p in profiles) p['id'] as String: p};
 
-    // Paso 4: inyectar datos del autor en cada post
+    // Inyectar datos del autor en cada post
     return posts.map((post) {
       final uid = post['created_by'] as String?;
       return {...post, 'profiles': uid != null ? profileMap[uid] : null};
