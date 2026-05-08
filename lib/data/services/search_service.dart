@@ -43,10 +43,20 @@ class SearchService {
     // Lanzar en paralelo solo las secciones habilitadas
     final futures = await Future.wait([
       filters.searchJobs
-          ? searchJobs(query, dateFrom: range.from, dateTo: range.to)
+          ? searchJobs(
+              query,
+              dateFrom: range.from,
+              dateTo: range.to,
+              locationFilter: filters.locationFilter,
+            )
           : Future.value(<JobModel>[]),
       filters.searchAcademic
-          ? searchAcademic(query, dateFrom: range.from, dateTo: range.to)
+          ? searchAcademic(
+              query,
+              dateFrom: range.from,
+              dateTo: range.to,
+              locationFilter: filters.locationFilter,
+            )
           : Future.value(<AcademicOfferModel>[]),
       filters.searchForum
           ? searchForum(query, dateFrom: range.from, dateTo: range.to)
@@ -70,11 +80,12 @@ class SearchService {
   // ----------------------------------------------------------
 
   /// Busca [query] en la tabla job_offers por título, empresa,
-  /// ubicación y descripción. Admite filtro de fechas opcional.
+  /// ubicación y descripción. Admite filtro de fechas y ubicación opcionales.
   Future<List<JobModel>> searchJobs(
     String query, {
     DateTime? dateFrom,
     DateTime? dateTo,
+    String? locationFilter,
   }) async {
     final q = '%$query%';
 
@@ -84,6 +95,11 @@ class SearchService {
         .select()
         .or('title.ilike.$q,company.ilike.$q,'
             'location.ilike.$q,description.ilike.$q');
+
+    // Filtro de ubicación: busca la región en la columna location
+    if (locationFilter != null && locationFilter.isNotEmpty) {
+      builder = builder.ilike('location', '%$locationFilter%');
+    }
 
     // Filtro de fecha: desde
     if (dateFrom != null) {
@@ -108,11 +124,12 @@ class SearchService {
   // ----------------------------------------------------------
 
   /// Busca [query] en la tabla academic_offers por título,
-  /// institución y descripción. Admite filtro de fechas opcional.
+  /// institución y descripción. Admite filtro de fechas y ubicación opcionales.
   Future<List<AcademicOfferModel>> searchAcademic(
     String query, {
     DateTime? dateFrom,
     DateTime? dateTo,
+    String? locationFilter,
   }) async {
     final q = '%$query%';
 
@@ -120,6 +137,11 @@ class SearchService {
         .from('academic_offers')
         .select()
         .or('title.ilike.$q,institution.ilike.$q,description.ilike.$q');
+
+    // Filtro de ubicación: busca la región en la columna location (si existe)
+    if (locationFilter != null && locationFilter.isNotEmpty) {
+      builder = builder.ilike('location', '%$locationFilter%');
+    }
 
     if (dateFrom != null) {
       builder = builder.gte('created_at', dateFrom.toIso8601String());

@@ -14,6 +14,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_strings.dart';
+import '../../core/constants/chile_locations.dart';
 import '../../models/search_result_model.dart';
 
 /// Pantalla de búsqueda avanzada con filtros de sección y período
@@ -39,6 +40,9 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
   late TimeFilter _timeFilter;
   late DateTime? _customFrom;
   late DateTime? _customTo;
+
+  // Filtro de ubicación: región seleccionada (opcional)
+  String? _locationRegion;
 
   // ----------------------------------------------------------
   // Etiquetas de los períodos de tiempo
@@ -68,6 +72,7 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
     _timeFilter = f.timeFilter;
     _customFrom = f.customDateFrom;
     _customTo = f.customDateTo;
+    _locationRegion = f.locationFilter;
   }
 
   // ----------------------------------------------------------
@@ -109,6 +114,10 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
       timeFilter: _timeFilter,
       customDateFrom: _timeFilter == TimeFilter.custom ? _customFrom : null,
       customDateTo: _timeFilter == TimeFilter.custom ? _customTo : null,
+      locationFilter:
+          _locationRegion != null && _locationRegion!.isNotEmpty
+              ? _locationRegion
+              : null,
     );
     Navigator.of(context).pop(filters);
   }
@@ -173,6 +182,50 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
             icon: Icons.newspaper_outlined,
             value: _searchNews,
             onChanged: (v) => setState(() => _searchNews = v!),
+          ),
+
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 8),
+
+          // --------------------------------------------------
+          // Sección: filtro de ubicación (opcional)
+          // --------------------------------------------------
+          _SectionHeader(label: 'Filtrar por ubicación (opcional)'),
+
+          const SizedBox(height: 8),
+
+          // Dropdown de región (opcional, se puede limpiar)
+          // Key basada en el valor para forzar recreación al limpiar
+          DropdownButtonFormField<String>(
+            key: ValueKey(_locationRegion ?? '__none__'),
+            initialValue: _locationRegion,
+            isExpanded: true,
+            decoration: InputDecoration(
+              hintText: 'Todas las regiones',
+              prefixIcon: const Icon(Icons.map_outlined),
+              suffixIcon: _locationRegion != null
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      tooltip: 'Limpiar región',
+                      onPressed: () => setState(() => _locationRegion = null),
+                    )
+                  : null,
+              isDense: true,
+            ),
+            items: [
+              ...chileLocations.keys.map(
+                (region) => DropdownMenuItem<String>(
+                  value: region,
+                  child: Text(
+                    region,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ),
+            ],
+            onChanged: (region) => setState(() => _locationRegion = region),
           ),
 
           const SizedBox(height: 20),
@@ -268,6 +321,7 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                 _timeFilter = TimeFilter.all;
                 _customFrom = null;
                 _customTo = null;
+                _locationRegion = null;
               });
             },
             child: Text(

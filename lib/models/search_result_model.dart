@@ -65,6 +65,9 @@ class SearchFilters {
   /// Fecha de fin del rango personalizado (solo para TimeFilter.custom)
   final DateTime? customDateTo;
 
+  /// Filtro de ubicación: nombre de región (ilike en columna location)
+  final String? locationFilter;
+
   const SearchFilters({
     this.searchJobs = true,
     this.searchAcademic = true,
@@ -73,6 +76,7 @@ class SearchFilters {
     this.timeFilter = TimeFilter.all,
     this.customDateFrom,
     this.customDateTo,
+    this.locationFilter,
   });
 
   /// Filtros con todas las secciones habilitadas y sin restricción de fecha
@@ -109,6 +113,8 @@ class SearchFilters {
     TimeFilter? timeFilter,
     DateTime? customDateFrom,
     DateTime? customDateTo,
+    String? locationFilter,
+    bool clearLocationFilter = false,
   }) {
     return SearchFilters(
       searchJobs: searchJobs ?? this.searchJobs,
@@ -118,6 +124,8 @@ class SearchFilters {
       timeFilter: timeFilter ?? this.timeFilter,
       customDateFrom: customDateFrom ?? this.customDateFrom,
       customDateTo: customDateTo ?? this.customDateTo,
+      locationFilter:
+          clearLocationFilter ? null : (locationFilter ?? this.locationFilter),
     );
   }
 }

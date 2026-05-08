@@ -13,6 +13,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/validators.dart';
 import '../../models/job_model.dart';
+import '../../shared/widgets/chile_location_selector.dart';
 import '../../shared/widgets/required_fields_note.dart';
 import '../auth/auth_providers.dart';
 import 'jobs_providers.dart';
@@ -36,9 +37,12 @@ class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
   // ----------------------------------------------------------
   final _titleController = TextEditingController();
   final _companyController = TextEditingController();
-  final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _requirementsController = TextEditingController();
+
+  // Ubicación estructurada: región y comunas seleccionadas
+  String? _locationRegion;
+  List<String> _locationCommunes = [];
 
   // Salario: campo único (fijo) o dos campos (rango)
   final _salaryAmountController = TextEditingController();
@@ -62,7 +66,6 @@ class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
   void dispose() {
     _titleController.dispose();
     _companyController.dispose();
-    _locationController.dispose();
     _descriptionController.dispose();
     _requirementsController.dispose();
     _salaryAmountController.dispose();
@@ -147,7 +150,7 @@ class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
         id: '',
         title: _titleController.text.trim(),
         company: _companyController.text.trim(),
-        location: _locationController.text.trim(),
+        location: buildLocationString(_locationRegion, _locationCommunes),
         description: _descriptionController.text.trim(),
         requirements: _requirementsController.text.trim().isEmpty
             ? null
@@ -227,13 +230,14 @@ class _CreateJobScreenState extends ConsumerState<CreateJobScreen> {
 
               const SizedBox(height: AppDimensions.spacingMd),
 
-              _FormField(
-                controller: _locationController,
-                label: 'Ubicación',
-                hint: 'Ej: Santiago, Región Metropolitana',
-                required: true,
-                validator: (v) =>
-                    Validators.required(v, 'La ubicación es obligatoria'),
+              // Selector de región y comunas de Chile
+              ChileLocationSelector(
+                onLocationChanged: (region, communes) {
+                  setState(() {
+                    _locationRegion = region;
+                    _locationCommunes = communes;
+                  });
+                },
               ),
 
               const SizedBox(height: AppDimensions.spacingMd),
