@@ -28,6 +28,22 @@ class ProfileService {
   }
 
   // ----------------------------------------------------------
+  // Verificar si un RUT ya existe en profiles (pre-validación de registro)
+  // ----------------------------------------------------------
+
+  /// Retorna true si el [rut] ya está registrado en la tabla profiles.
+  /// Usado antes de llamar a Supabase signUp para evitar crear usuarios huérfanos.
+  Future<bool> rutExists(String rut) async {
+    final result = await _client
+        .from(_tableProfiles)
+        .select('id')
+        .eq('rut', rut.trim())
+        .limit(1)
+        .maybeSingle();
+    return result != null;
+  }
+
+  // ----------------------------------------------------------
   // Crear perfil si no existe (llamado tras registro exitoso)
   // ----------------------------------------------------------
 

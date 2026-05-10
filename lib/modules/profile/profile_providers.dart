@@ -41,13 +41,21 @@ class ProfileNotifier extends AsyncNotifier<ProfileModel?> {
     final repo = ref.read(profileRepositoryProvider);
     var profile = await repo.getProfile(user.id);
 
-    // Si el perfil no existe, crearlo desde los metadatos de auth
+    // Si el perfil no existe (usuario huérfano), crearlo con los datos disponibles.
+    // Garantiza que la app funcione incluso para cuentas sin fila en profiles.
     if (profile == null) {
       final meta = user.userMetadata ?? {};
+      final fullName = meta['full_name'] as String? ?? '';
+      final firstName = fullName.trim().split(' ').firstWhere(
+            (p) => p.isNotEmpty,
+            orElse: () => 'Usuario',
+          );
       await repo.createProfileIfNotExists(
         user.id,
-        meta['full_name'] as String? ?? '',
+        fullName,
         meta['rut'] as String? ?? '',
+        email: user.email,
+        firstName: firstName,
       );
       profile = await repo.getProfile(user.id);
     }

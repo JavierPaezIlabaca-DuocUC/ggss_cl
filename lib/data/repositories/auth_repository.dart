@@ -9,7 +9,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../exceptions/app_exceptions.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
-import '../supabase/supabase_client.dart';
 
 /// Repositorio de autenticación de GGSS.cl
 class AuthRepository {
@@ -54,6 +53,7 @@ class AuthRepository {
   }
 
   /// Registra un nuevo usuario con todos los campos del formulario de registro.
+  /// Verifica el RUT ANTES de llamar a Supabase para evitar usuarios huérfanos.
   /// Tras el registro exitoso crea el perfil en la tabla 'profiles'.
   Future<AuthResponse> signUp({
     required String email,
@@ -68,6 +68,14 @@ class AuthRepository {
     // DEPRECATED: alias - kept for potential future use
     // String? alias,
   }) async {
+    // Verificar unicidad del RUT ANTES de crear el usuario en auth.users.
+    // Si el RUT ya existe y se llamara a signUp primero, el usuario quedaría
+    // creado en auth sin perfil correspondiente.
+    final rutTaken = await _profileService.rutExists(rut);
+    if (rutTaken) {
+      throw const RutAlreadyExistsException();
+    }
+
     final response = await _authService.signUpWithEmailAndPassword(
       email: email,
       password: password,
@@ -76,19 +84,6 @@ class AuthRepository {
       accountType: accountType,
       phone: phone,
     );
-
-    // Verificar unicidad del RUT antes de crear el perfil.
-    if (response.user != null) {
-      final existing = await SupabaseClientProvider.client
-          .from('profiles')
-          .select('id')
-          .eq('rut', rut)
-          .limit(1)
-          .maybeSingle();
-      if (existing != null) {
-        throw const RutAlreadyExistsException();
-      }
-    }
 
     // Crear perfil en 'profiles' si el usuario fue creado correctamente.
     if (response.user != null) {

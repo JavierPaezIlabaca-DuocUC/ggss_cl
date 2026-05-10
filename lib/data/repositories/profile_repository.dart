@@ -67,13 +67,22 @@ class ProfileRepository {
     );
   }
 
-  /// Inserta el perfil si aún no existe (llamado tras registro exitoso).
+  /// Inserta el perfil si aún no existe.
+  /// Acepta [email] y [firstName] para completar el perfil con datos disponibles.
   Future<void> createProfileIfNotExists(
     String userId,
     String fullName,
-    String rut,
-  ) {
-    return _profileService.createProfileIfNotExists(userId, fullName, rut);
+    String rut, {
+    String? email,
+    String? firstName,
+  }) {
+    return _profileService.createProfileIfNotExists(
+      userId,
+      fullName,
+      rut,
+      email: email,
+      firstName: firstName,
+    );
   }
 
   // ----------------------------------------------------------
