@@ -17,6 +17,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../profile/profile_providers.dart';
 import 'settings_providers.dart';
+import 'terms_screen.dart';
 
 /// Pantalla de configuración (se muestra sobre el shell principal)
 class SettingsScreen extends ConsumerWidget {
@@ -227,7 +228,31 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 8),
 
           // --------------------------------------------------
-          // Sección 4: Acerca de
+          // Sección 4: Legal
+          // --------------------------------------------------
+          _SectionHeader(label: 'Legal'),
+
+          const SizedBox(height: 10),
+
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              leading: const Icon(Icons.gavel_outlined),
+              title: const Text('Términos y condiciones'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TermsScreen()),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 8),
+
+          // --------------------------------------------------
+          // Sección 5: Acerca de
           // --------------------------------------------------
           _SectionHeader(label: AppStrings.settingsAbout),
 

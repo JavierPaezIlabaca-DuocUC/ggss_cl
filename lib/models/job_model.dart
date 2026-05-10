@@ -14,6 +14,7 @@ class JobModel {
   final String? requirements;
   final String? salaryRange;
   final String? contactWhatsapp;
+  final String? address;
   final double? latitude;
   final double? longitude;
   final String createdBy;
@@ -36,6 +37,7 @@ class JobModel {
     this.requirements,
     this.salaryRange,
     this.contactWhatsapp,
+    this.address,
     this.latitude,
     this.longitude,
     required this.createdBy,
@@ -59,6 +61,7 @@ class JobModel {
       requirements: map['requirements'] as String?,
       salaryRange: map['salary_range'] as String?,
       contactWhatsapp: map['contact_whatsapp'] as String?,
+      address: map['address'] as String?,
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
       createdBy: map['created_by'] as String? ?? '',
@@ -86,6 +89,7 @@ class JobModel {
         'salary_range': salaryRange,
       if (contactWhatsapp != null && contactWhatsapp!.isNotEmpty)
         'contact_whatsapp': contactWhatsapp,
+      if (address != null && address!.isNotEmpty) 'address': address,
       'created_by': createdBy,
     };
   }
@@ -93,4 +97,7 @@ class JobModel {
   /// Indica si tiene número de WhatsApp para contacto
   bool get hasWhatsapp =>
       contactWhatsapp != null && contactWhatsapp!.isNotEmpty;
+
+  /// Indica si tiene dirección específica para mostrar en Google Maps
+  bool get hasAddress => address != null && address!.isNotEmpty;
 }

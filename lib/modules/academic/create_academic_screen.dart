@@ -5,7 +5,6 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -13,6 +12,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/validators.dart';
 import '../../models/academic_offer_model.dart';
+import '../../shared/formatters/phone_digits_formatter.dart';
 import '../../shared/widgets/required_fields_note.dart';
 import '../auth/auth_providers.dart';
 import '../profile/profile_providers.dart';
@@ -46,6 +46,7 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
   final _requirementsController = TextEditingController();
   final _durationController = TextEditingController();
   final _priceController = TextEditingController();
+  final _addressController = TextEditingController();
   final _whatsappController = TextEditingController();
   final _urlController = TextEditingController();
 
@@ -67,6 +68,7 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
       _institutionController.text.isNotEmpty ||
       _descriptionController.text.isNotEmpty ||
       _requirementsController.text.isNotEmpty ||
+      _addressController.text.isNotEmpty ||
       _durationController.text.isNotEmpty ||
       _priceController.text.isNotEmpty ||
       _whatsappController.text.isNotEmpty ||
@@ -81,6 +83,7 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
     _requirementsController.dispose();
     _durationController.dispose();
     _priceController.dispose();
+    _addressController.dispose();
     _whatsappController.dispose();
     _urlController.dispose();
     super.dispose();
@@ -149,6 +152,9 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
             ? null
             : _priceController.text.trim(),
         contactWhatsapp: whatsappNumber,
+        address: _addressController.text.trim().isEmpty
+            ? null
+            : _addressController.text.trim(),
         url: _urlController.text.trim().isEmpty
             ? null
             : _urlController.text.trim(),
@@ -280,6 +286,16 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
                       Validators.required(v, 'La descripción es obligatoria'),
                 ),
 
+                const SizedBox(height: AppDimensions.spacingMd),
+
+                // Dirección específica (opcional) para Google Maps
+                _FormField(
+                  controller: _addressController,
+                  label: 'Dirección específica (opcional)',
+                  hint: 'Ej: Av. Vicuña Mackenna 4860, Santiago',
+                  keyboardType: TextInputType.streetAddress,
+                ),
+
                 const SizedBox(height: AppDimensions.spacingXl),
 
                 // --------------------------------------------------
@@ -325,38 +341,64 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
                 _SectionTitle(text: 'Contacto e inscripción (opcional)'),
                 const SizedBox(height: AppDimensions.spacingSm),
 
-                // Selector de origen del número: solo visible si el
-                // usuario tiene teléfono registrado en su perfil
-                if (accountPhone != null) ...[
-                  SegmentedButton<_PhoneSource>(
-                    segments: const [
-                      ButtonSegment(
-                        value: _PhoneSource.account,
-                        label: Text('Usar mi número de cuenta'),
-                        icon: Icon(Icons.person_outline),
-                      ),
-                      ButtonSegment(
-                        value: _PhoneSource.other,
-                        label: Text('Usar otro número'),
-                        icon: Icon(Icons.edit_outlined),
-                      ),
-                    ],
-                    selected: {_phoneSource},
-                    onSelectionChanged: (selection) {
-                      setState(() => _phoneSource = selection.first);
-                    },
-                    showSelectedIcon: false,
-                    style: ButtonStyle(
-                      minimumSize: WidgetStateProperty.all(
-                        const Size(
-                          double.infinity,
-                          AppDimensions.inputHeight,
-                        ),
-                      ),
+                // Selector de origen del número de WhatsApp
+                SegmentedButton<_PhoneSource>(
+                  segments: const [
+                    ButtonSegment(
+                      value: _PhoneSource.account,
+                      label: Text('Usar mi número de cuenta'),
+                      icon: Icon(Icons.person_outline),
+                    ),
+                    ButtonSegment(
+                      value: _PhoneSource.other,
+                      label: Text('Usar otro número'),
+                      icon: Icon(Icons.edit_outlined),
+                    ),
+                  ],
+                  // Si no hay teléfono en perfil, forzar selección "otro"
+                  selected: {
+                    accountPhone == null
+                        ? _PhoneSource.other
+                        : _phoneSource,
+                  },
+                  onSelectionChanged: (selection) {
+                    if (selection.first == _PhoneSource.account &&
+                        accountPhone == null) {
+                      return;
+                    }
+                    setState(() => _phoneSource = selection.first);
+                  },
+                  showSelectedIcon: false,
+                  style: ButtonStyle(
+                    minimumSize: WidgetStateProperty.all(
+                      const Size(double.infinity, AppDimensions.inputHeight),
                     ),
                   ),
-                  const SizedBox(height: AppDimensions.spacingMd),
+                ),
+
+                // Mensaje cuando no hay teléfono en el perfil
+                if (accountPhone == null) ...[
+                  const SizedBox(height: AppDimensions.spacingXs),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'No tienes teléfono registrado en tu perfil.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color:
+                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
                 ],
+
+                const SizedBox(height: AppDimensions.spacingMd),
 
                 // Campo WhatsApp: solo lectura (cuenta) o editable (otro)
                 if (accountPhone != null &&
@@ -497,12 +539,13 @@ class _WhatsAppField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.number,
-      inputFormatters: [_PhoneDigitsFormatter()],
+      inputFormatters: [PhoneDigitsFormatter()],
       validator: validator,
       decoration: const InputDecoration(
         labelText: 'WhatsApp',
         hintText: '12 34 56 78',
         prefixText: '+569 ',
+        prefixStyle: TextStyle(fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -545,26 +588,3 @@ class _ReadOnlyWhatsAppField extends StatelessWidget {
   }
 }
 
-/// Formatea la entrada como 8 dígitos con espacio cada 2: "12 34 56 78"
-class _PhoneDigitsFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final limited = digits.length > 8 ? digits.substring(0, 8) : digits;
-
-    final buffer = StringBuffer();
-    for (int i = 0; i < limited.length; i++) {
-      if (i > 0 && i % 2 == 0) buffer.write(' ');
-      buffer.write(limited[i]);
-    }
-
-    final formatted = buffer.toString();
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-}

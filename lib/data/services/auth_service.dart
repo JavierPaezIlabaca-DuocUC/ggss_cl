@@ -76,9 +76,10 @@ class AuthService {
         if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
         if (alias != null && alias.trim().isNotEmpty) 'alias': alias.trim(),
       },
-      // URL de redirección tras confirmar el correo.
-      // Android intercepta ggss://app con el intent-filter del Manifest.
-      emailRedirectTo: 'ggss://app',
+      // URL de redirección: Edge Function que funciona desde cualquier
+      // dispositivo/navegador y redirige a ggss://app en móvil.
+      emailRedirectTo:
+          'https://vxbotzyieemxapqshfgq.supabase.co/functions/v1/auth-confirm',
     );
   }
 

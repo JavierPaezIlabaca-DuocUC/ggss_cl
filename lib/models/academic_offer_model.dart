@@ -14,6 +14,7 @@ class AcademicOfferModel {
   final String? duration;
   final String? price;
   final String? contactWhatsapp;
+  final String? address;
   final String? url;
   final String createdBy;
 
@@ -35,6 +36,7 @@ class AcademicOfferModel {
     this.duration,
     this.price,
     this.contactWhatsapp,
+    this.address,
     this.url,
     required this.createdBy,
     this.authorName,
@@ -57,6 +59,7 @@ class AcademicOfferModel {
       duration: map['duration'] as String?,
       price: map['price'] as String?,
       contactWhatsapp: map['contact_whatsapp'] as String?,
+      address: map['address'] as String?,
       url: map['url'] as String?,
       createdBy: map['created_by'] as String? ?? '',
       authorName: profiles?['full_name'] as String?,
@@ -82,6 +85,7 @@ class AcademicOfferModel {
       if (price != null && price!.isNotEmpty) 'price': price,
       if (contactWhatsapp != null && contactWhatsapp!.isNotEmpty)
         'contact_whatsapp': contactWhatsapp,
+      if (address != null && address!.isNotEmpty) 'address': address,
       if (url != null && url!.isNotEmpty) 'url': url,
       'created_by': createdBy,
     };
@@ -90,6 +94,9 @@ class AcademicOfferModel {
   /// Indica si tiene número de WhatsApp para contacto
   bool get hasWhatsapp =>
       contactWhatsapp != null && contactWhatsapp!.isNotEmpty;
+
+  /// Indica si tiene dirección específica para mostrar en Google Maps
+  bool get hasAddress => address != null && address!.isNotEmpty;
 
   /// Indica si tiene URL de inscripción o información
   bool get hasUrl => url != null && url!.isNotEmpty;

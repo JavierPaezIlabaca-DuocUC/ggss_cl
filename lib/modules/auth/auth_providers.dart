@@ -16,6 +16,23 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/auth_repository.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/exceptions/app_exceptions.dart';
+
+// ----------------------------------------------------------
+// Código de error específico para bifurcar la UI
+// ----------------------------------------------------------
+
+/// Identifica el tipo de error para que la UI pueda mostrar acciones específicas
+enum AuthErrorCode {
+  /// Sin error o error genérico
+  none,
+
+  /// El correo ya existe en Supabase Auth
+  emailAlreadyExists,
+
+  /// El RUT ya existe en la tabla profiles
+  rutAlreadyExists,
+}
 
 // ----------------------------------------------------------
 // Estados posibles del formulario de autenticación
@@ -47,9 +64,13 @@ class AuthFormState {
   /// Mensaje de error en español para mostrar al usuario (null si no hay error)
   final String? errorMessage;
 
+  /// Código de error para bifurcar la UI (ej. mostrar enlace de reset)
+  final AuthErrorCode errorCode;
+
   const AuthFormState({
     this.status = AuthFormStatus.idle,
     this.errorMessage,
+    this.errorCode = AuthErrorCode.none,
   });
 
   /// Retorna true si el formulario está en proceso de envío
@@ -65,10 +86,12 @@ class AuthFormState {
   AuthFormState copyWith({
     AuthFormStatus? status,
     String? errorMessage,
+    AuthErrorCode? errorCode,
   }) {
     return AuthFormState(
       status: status ?? this.status,
       errorMessage: errorMessage,
+      errorCode: errorCode ?? this.errorCode,
     );
   }
 }
@@ -142,10 +165,25 @@ class AuthNotifier extends StateNotifier<AuthFormState> {
         alias: alias,
       );
       state = const AuthFormState(status: AuthFormStatus.success);
+    } on RutAlreadyExistsException {
+      state = const AuthFormState(
+        status: AuthFormStatus.error,
+        errorMessage: 'Este RUT ya está registrado en GGSS.cl.',
+        errorCode: AuthErrorCode.rutAlreadyExists,
+      );
     } on AuthException catch (e) {
+      final msg = e.message.toLowerCase();
+      final isEmailTaken = msg.contains('user already registered') ||
+          msg.contains('already been registered') ||
+          msg.contains('email address is already taken');
       state = AuthFormState(
         status: AuthFormStatus.error,
-        errorMessage: AuthService.translateAuthError(e.message),
+        errorMessage: isEmailTaken
+            ? 'Este correo electrónico ya está registrado.'
+            : AuthService.translateAuthError(e.message),
+        errorCode: isEmailTaken
+            ? AuthErrorCode.emailAlreadyExists
+            : AuthErrorCode.none,
       );
     } catch (_) {
       state = const AuthFormState(

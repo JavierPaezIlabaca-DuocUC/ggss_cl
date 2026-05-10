@@ -1,10 +1,13 @@
 // ============================================================
 // email_verification_screen.dart
-// Pantalla de verificación de correo electrónico.
+// Pantalla de verificación de credenciales.
 //
 // Se muestra cuando el usuario se registra pero aún no ha
-// confirmado su correo. Permite reenviar el correo y verificar
-// si ya lo confirmó, además de cerrar sesión.
+// confirmado su correo. Permite reenviar el enlace de verificación
+// y verificar si ya lo confirmó, además de cerrar sesión.
+//
+// El enlace de verificación apunta a la Edge Function auth-confirm,
+// que funciona desde cualquier dispositivo o navegador.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -192,6 +195,17 @@ class _EmailVerificationScreenState
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
+                ),
+              ),
+
+              const SizedBox(height: AppDimensions.spacingSm),
+
+              Text(
+                AppStrings.emailVerifWaiting,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
 

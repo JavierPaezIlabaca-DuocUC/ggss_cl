@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirma tu cuenta en GGSS.cl</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+        'Helvetica Neue', Arial, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+    }
+    .wrapper {
+      max-width: 560px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    }
+    .header {
+      background: #1565C0;
+      padding: 32px 40px;
+      text-align: center;
+    }
+    .header h1 {
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.3px;
+    }
+    .header p {
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      margin: 6px 0 0;
+    }
+    .body {
+      padding: 36px 40px;
+    }
+    .greeting {
+      color: #1a1a1a;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .cta-box {
+      text-align: center;
+      margin: 32px 0;
+    }
+    .btn {
+      display: inline-block;
+      background: #1565C0;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 16px 40px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .note {
+      background: #e3f0ff;
+      border-radius: 10px;
+      padding: 14px 18px;
+      color: #1565C0;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .link-fallback {
+      color: #555;
+      font-size: 12px;
+      line-height: 1.6;
+      word-break: break-all;
+    }
+    .link-fallback a {
+      color: #1565C0;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #e8ecf0;
+      margin: 28px 0;
+    }
+    .footer {
+      padding: 20px 40px 32px;
+      text-align: center;
+      color: #999;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .footer a {
+      color: #1565C0;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Encabezado -->
+    <div class="header">
+      <h1>🛡️ GGSS.cl</h1>
+      <p>Plataforma de Seguridad Privada en Chile</p>
+    </div>
+
+    <!-- Cuerpo -->
+    <div class="body">
+      <p class="greeting">
+        ¡Bienvenido a GGSS.cl!<br /><br />
+        Gracias por registrarte. Para activar tu cuenta y comenzar a usar la
+        plataforma, confirma tu dirección de correo electrónico haciendo clic
+        en el botón de abajo.
+      </p>
+
+      <div class="cta-box">
+        <a href="{{ .ConfirmationURL }}" class="btn">Confirmar mi cuenta</a>
+      </div>
+
+      <div class="note">
+        📱 <strong>El enlace funciona desde cualquier dispositivo.</strong><br />
+        Si haces clic desde tu teléfono, la app se abrirá automáticamente.
+        Si lo haces desde un computador, recibirás instrucciones en pantalla.
+      </div>
+
+      <hr class="divider" />
+
+      <p class="link-fallback">
+        Si el botón no funciona,
+        <a href="{{ .ConfirmationURL }}">haz clic aquí para confirmar tu cuenta</a>.
+      </p>
+    </div>
+
+    <!-- Pie de página -->
+    <div class="footer">
+      Si no creaste una cuenta en GGSS.cl, ignora este correo.<br />
+      Tu cuenta no será activada sin que confirmes este enlace.<br /><br />
+      ¿Tienes dudas? Escríbenos a
+      <a href="mailto:soporte@ggss.cl">soporte@ggss.cl</a>
+    </div>
+  </div>
+</body>
+</html>

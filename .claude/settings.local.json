@@ -68,7 +68,13 @@
       "Bash(powershell.exe -Command \"Get-ChildItem -Path C:\\\\Users\\\\Javier\\\\.config -Recurse -ErrorAction SilentlyContinue | Select-Object FullName\")",
       "Bash(powershell.exe -Command \"cmdkey /list\")",
       "Bash(Get-ChildItem -Path \"C:\\\\Claude Code\\\\ggss_cl\\\\lib\\\\modules\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(supabase functions *)",
+      "Bash(curl -s \"https://vxbotzyieemxapqshfgq.supabase.co/functions/v1/news-proxy\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4Ym90enlpZWVteGFwcXNoZmdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxNTg0ODksImV4cCI6MjA2MTczNDQ4OX0.N2bCfE1WL3XKvt7tBsIXplRBsKKyTBJK3ZGqAvS0bxM\")",
+      "Bash(python -c \"import sys,json; items=json.load\\(sys.stdin\\); [print\\(f'--- Item {i+1} ---\\\\nTITLE: {it[\\\\\"title\\\\\"]}\\\\nDESC: {it[\\\\\"description\\\\\"][:150]}\\\\nSOURCE: {it[\\\\\"source\\\\\"]}\\\\n'\\) for i,it in enumerate\\(items[:3]\\)]\")",
+      "Bash(C:\\\\Users\\\\Javier\\\\.local\\\\bin\\\\supabase.exe --version)",
+      "PowerShell(psql --version 2>&1)",
+      "PowerShell(Invoke-WebRequest -Uri \"https://github.com/supabase/cli/releases/download/v2.98.2/supabase_windows_amd64.tar.gz\" -OutFile \"$env:TEMP\\\\supabase_v2.98.2.tar.gz\" -UseBasicParsing 2>&1; echo \"Downloaded\")"
     ]
   }
 }

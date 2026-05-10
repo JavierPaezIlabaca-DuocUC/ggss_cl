@@ -19,14 +19,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/validators.dart';
+import '../../shared/formatters/phone_digits_formatter.dart';
 import '../../shared/widgets/password_text_field.dart';
+import '../settings/terms_screen.dart';
 import '../shell/main_shell.dart';
 import 'auth_providers.dart';
+import 'forgot_password_screen.dart';
 
 /// Pantalla de registro de nueva cuenta de GGSS.cl
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -45,12 +49,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _rutController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
+  final _confirmEmailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _aliasController = TextEditingController();
 
   // Tipo de cuenta seleccionado: 'personal' o 'empresa'
   String _accountType = 'personal';
+
+  // Estado del checkbox de términos y condiciones
+  bool _termsAccepted = false;
+  bool _termsErrorVisible = false;
 
   // ----------------------------------------------------------
   // Ciclo de vida: liberar controladores
@@ -61,6 +70,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _rutController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _confirmEmailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _aliasController.dispose();
@@ -78,11 +88,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     // Validar el formulario completo
     if (!_formKey.currentState!.validate()) return;
 
+    // Validar que se aceptaron los términos y condiciones
+    if (!_termsAccepted) {
+      setState(() => _termsErrorVisible = true);
+      return;
+    }
+
     // Formatear el RUT al estándar XX.XXX.XXX-Y antes de guardar
     final rutFormateado = Validators.formatRut(_rutController.text);
 
-    // El teléfono se almacena con el prefijo +569
-    final phoneCompleto = '+569${_phoneController.text.trim()}';
+    // El teléfono se almacena con el prefijo +569 (sin los espacios del formatter)
+    final phoneCompleto =
+        '+569${_phoneController.text.replaceAll(' ', '').trim()}';
 
     // Delegar el registro al AuthNotifier
     await ref.read(authNotifierProvider.notifier).signUp(
@@ -224,7 +241,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                     const SizedBox(height: AppDimensions.spacingMd),
 
-                    // Campo: RUT chileno con formato automático
+                    // Campo: RUT chileno con formato automático en tiempo real
                     TextFormField(
                       controller: _rutController,
                       keyboardType: TextInputType.text,
@@ -233,7 +250,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       validator: Validators.validateRut,
                       decoration: const InputDecoration(
                         labelText: AppStrings.authRut,
-                        hintText: AppStrings.authRutHint,
+                        hintText: '12.345.678-9',
                         helperText: AppStrings.authRutHelper,
                         prefixIcon: Icon(Icons.badge_outlined),
                       ),
@@ -241,22 +258,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                     const SizedBox(height: AppDimensions.spacingMd),
 
-                    // Campo: teléfono con prefijo +569 fijo
+                    // Campo: teléfono con prefijo +569 fijo y formato automático
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.number,
                       textInputAction: TextInputAction.next,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(8),
-                      ],
-                      validator: Validators.validatePhone8Digits,
+                      inputFormatters: [PhoneDigitsFormatter()],
+                      validator: (value) => Validators.validatePhone8Digits(
+                        value?.replaceAll(' ', ''),
+                      ),
                       decoration: const InputDecoration(
                         labelText: AppStrings.authPhone,
-                        hintText: AppStrings.authPhoneHint,
+                        hintText: '12 34 56 78',
                         helperText: AppStrings.authPhoneHelper,
                         prefixIcon: Icon(Icons.phone_outlined),
-                        prefixText: '${AppStrings.authPhonePrefix} ',
+                        prefixText: '+569 ',
+                        prefixStyle: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
 
@@ -274,6 +291,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         labelText: AppStrings.authEmail,
                         hintText: AppStrings.authEmailHint,
                         prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                    ),
+
+                    const SizedBox(height: AppDimensions.spacingMd),
+
+                    // Campo: confirmar correo electrónico
+                    TextFormField(
+                      controller: _confirmEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Debes confirmar tu correo electrónico.';
+                        }
+                        if (value.trim() != _emailController.text.trim()) {
+                          return 'Los correos electrónicos no coinciden.';
+                        }
+                        return null;
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Confirmar correo electrónico',
+                        hintText: AppStrings.authEmailHint,
+                        prefixIcon: Icon(Icons.mark_email_read_outlined),
                       ),
                     ),
 
@@ -329,9 +371,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                     // Banner de error (visible solo cuando hay error)
                     if (authState.hasError) ...[
-                      _AuthErrorBanner(message: authState.errorMessage!),
+                      if (authState.errorCode ==
+                          AuthErrorCode.rutAlreadyExists)
+                        _RutExistsErrorBanner(
+                          message: authState.errorMessage!,
+                        )
+                      else if (authState.errorCode ==
+                          AuthErrorCode.emailAlreadyExists)
+                        _EmailExistsErrorBanner(
+                          message: authState.errorMessage!,
+                          email: _emailController.text,
+                        )
+                      else
+                        _AuthErrorBanner(message: authState.errorMessage!),
                       const SizedBox(height: AppDimensions.spacingMd),
                     ],
+
+                    // Checkbox: aceptar términos y condiciones
+                    _TermsCheckbox(
+                      value: _termsAccepted,
+                      enabled: !authState.isLoading,
+                      onChanged: (value) => setState(() {
+                        _termsAccepted = value ?? false;
+                        if (_termsAccepted) _termsErrorVisible = false;
+                      }),
+                    ),
+
+                    if (_termsErrorVisible) ...[
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding:
+                            const EdgeInsets.only(left: 12),
+                        child: Text(
+                          'Debes aceptar los términos y condiciones para continuar.',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.error,
+                                  ),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: AppDimensions.spacingMd),
 
                     // Botón principal: Crear cuenta
                     FilledButton(
@@ -423,25 +504,48 @@ class _AccountTypeCard extends StatelessWidget {
 }
 
 // ============================================================
-// Formatter de RUT: convierte a mayúsculas y filtra caracteres
+// Formatter de RUT: aplica puntos y guión en tiempo real
+// Formato: X.XXX.XXX-X o XX.XXX.XXX-X (máx 9 chars significativos)
 // ============================================================
 
-/// Formatea el RUT mientras el usuario escribe:
-/// - Convierte a mayúsculas (para la K del dígito verificador)
-/// - Solo permite dígitos, puntos, guiones y la letra K
+/// Formatea el RUT mientras el usuario escribe aplicando puntos y guión.
 class _RutInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final filtered = newValue.text
-        .toUpperCase()
-        .replaceAll(RegExp(r'[^0-9.\-K]'), '');
+    // Limpiar: solo dígitos y K en mayúscula
+    final raw = newValue.text.toUpperCase().replaceAll(RegExp(r'[^0-9K]'), '');
 
-    return newValue.copyWith(
-      text: filtered,
-      selection: TextSelection.collapsed(offset: filtered.length),
+    if (raw.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    // Limitar a 9 caracteres significativos (8 dígitos + 1 DV)
+    final limited = raw.length > 9 ? raw.substring(0, 9) : raw;
+
+    // Separar cuerpo (todos menos el último) y DV (último)
+    final body = limited.length > 1
+        ? limited.substring(0, limited.length - 1)
+        : limited;
+    final dv = limited.length > 1 ? limited[limited.length - 1] : '';
+
+    // Insertar puntos cada 3 dígitos desde la derecha del cuerpo
+    final buffer = StringBuffer();
+    for (int i = 0; i < body.length; i++) {
+      if (i > 0 && (body.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(body[i]);
+    }
+
+    final result = dv.isEmpty ? buffer.toString() : '${buffer.toString()}-$dv';
+
+    return TextEditingValue(
+      text: result,
+      selection: TextSelection.collapsed(offset: result.length),
     );
   }
 }
@@ -480,6 +584,132 @@ class _PasswordRequirementsBox extends StatelessWidget {
           Text('• Mínimo 8 caracteres', style: textStyle),
           Text('• Al menos una mayúscula', style: textStyle),
           Text('• Al menos un número', style: textStyle),
+        ],
+      ),
+    );
+  }
+}
+
+/// Banner para cuando el RUT ya está registrado — incluye enlace a soporte
+class _RutExistsErrorBanner extends StatelessWidget {
+  final String message;
+  const _RutExistsErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.spacingMd),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.error, size: 18),
+          const SizedBox(width: AppDimensions.spacingSm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.error,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text.rich(
+                  TextSpan(
+                    text: '¿Su RUT está siendo utilizado por otro usuario? '
+                        'Escríbanos a ',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.error,
+                        ),
+                    children: [
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: GestureDetector(
+                          onTap: () => launchUrl(
+                            Uri.parse('mailto:soporte@ggss.cl'),
+                          ),
+                          child: Text(
+                            'soporte@ggss.cl',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.primaryBlue,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: AppColors.primaryBlue,
+                                    ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Banner para cuando el correo ya está registrado — incluye enlace a reset
+class _EmailExistsErrorBanner extends StatelessWidget {
+  final String message;
+  final String email;
+  const _EmailExistsErrorBanner({required this.message, required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.spacingMd),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.error, size: 18),
+          const SizedBox(width: AppDimensions.spacingSm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.error,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ForgotPasswordScreen(initialEmail: email),
+                    ),
+                  ),
+                  child: Text(
+                    'Restablecer contraseña',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.primaryBlue,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.primaryBlue,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -529,6 +759,69 @@ class _LoadingButtonContent extends StatelessWidget {
       height: 20,
       width: 20,
       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+    );
+  }
+}
+
+// ============================================================
+// Checkbox de términos y condiciones
+// ============================================================
+
+/// Fila con checkbox y enlace a TermsScreen
+class _TermsCheckbox extends StatelessWidget {
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool?> onChanged;
+
+  const _TermsCheckbox({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Checkbox(
+          value: value,
+          onChanged: enabled ? onChanged : null,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+        ),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              text: 'Acepto los ',
+              style: theme.textTheme.bodySmall,
+              children: [
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.baseline,
+                  baseline: TextBaseline.alphabetic,
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TermsScreen(),
+                      ),
+                    ),
+                    child: Text(
+                      'términos y condiciones',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.primaryBlue,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.primaryBlue,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

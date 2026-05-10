@@ -160,6 +160,19 @@ class AcademicDetailScreen extends ConsumerWidget {
               ),
 
             // --------------------------------------------------
+            // Botón Google Maps (si hay dirección específica)
+            // --------------------------------------------------
+            if (offer.hasAddress) ...[
+              const SizedBox(height: AppDimensions.spacingSm),
+              _ActionButton(
+                icon: Icons.map_outlined,
+                label: 'Ver ubicación en Google Maps',
+                color: AppColors.primaryBlue,
+                onTap: () => _openMaps(context),
+              ),
+            ],
+
+            // --------------------------------------------------
             // Botón URL (si hay enlace de inscripción)
             // --------------------------------------------------
             if (offer.hasUrl) ...[
@@ -187,7 +200,16 @@ class AcademicDetailScreen extends ConsumerWidget {
     final message = Uri.encodeComponent(
       'Hola, vi tu oferta académica en GGSS.cl y me interesa',
     );
-    final url = 'https://wa.me/${offer.contactWhatsapp}?text=$message';
+    // wa.me requires the number WITHOUT the leading + sign
+    final number = offer.contactWhatsapp!.replaceAll('+', '');
+    final url = 'https://wa.me/$number?text=$message';
+    ExternalLinkOpener.open(context, url);
+  }
+
+  void _openMaps(BuildContext context) {
+    final query = Uri.encodeComponent(offer.address!);
+    final url =
+        'https://www.google.com/maps/search/?api=1&query=$query';
     ExternalLinkOpener.open(context, url);
   }
 

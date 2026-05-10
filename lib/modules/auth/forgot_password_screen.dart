@@ -20,7 +20,10 @@ import 'auth_providers.dart';
 
 /// Pantalla de recuperación de contraseña de GGSS.cl
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
-  const ForgotPasswordScreen({super.key});
+  /// Correo pre-llenado al navegar desde un error de "correo ya existe"
+  final String? initialEmail;
+
+  const ForgotPasswordScreen({super.key, this.initialEmail});
 
   @override
   ConsumerState<ForgotPasswordScreen> createState() =>
@@ -37,6 +40,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   // ----------------------------------------------------------
   // Ciclo de vida
   // ----------------------------------------------------------
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialEmail != null) {
+      _emailController.text = widget.initialEmail!;
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();

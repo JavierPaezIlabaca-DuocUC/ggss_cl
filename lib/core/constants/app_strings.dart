@@ -109,19 +109,20 @@ class AppStrings {
       'Si no lo encuentras, revisa la carpeta de spam.';
   static const String authBackToLogin = 'Volver al inicio de sesión';
 
-  // Verificación de correo electrónico
-  static const String emailVerifTitle = 'Verifica tu correo electrónico';
-  static const String emailVerifSubtitlePre = 'Te enviamos un correo a ';
+  // Verificación de credenciales
+  static const String emailVerifTitle = 'Verificación de credenciales';
+  static const String emailVerifWaiting = 'En espera de confirmación de credenciales';
+  static const String emailVerifSubtitlePre = 'Enviamos un enlace de verificación a ';
   static const String emailVerifSubtitlePost =
-      '. Abre el enlace para activar tu cuenta y acceder a GGSS.cl.';
-  static const String emailVerifResend = 'Reenviar correo de verificación';
-  static const String emailVerifAlreadyDone = 'Ya verifiqué mi correo';
+      '. Revisa tu bandeja de entrada y sigue el enlace para activar tu cuenta. El enlace funciona desde cualquier dispositivo.';
+  static const String emailVerifResend = 'Reenviar enlace de verificación';
+  static const String emailVerifAlreadyDone = 'Ya verifiqué mis credenciales';
   static const String emailVerifResendSuccess =
-      'Correo reenviado. Revisa tu bandeja de entrada.';
+      'Enlace reenviado. Revisa tu bandeja de entrada.';
   static const String emailVerifNotYet =
-      'Tu correo aún no ha sido verificado. Revisa tu bandeja de entrada.';
+      'Las credenciales aún no han sido verificadas. Revisa tu bandeja de entrada.';
   static const String emailVerifResendError =
-      'No se pudo reenviar el correo. Intenta nuevamente.';
+      'No se pudo reenviar el enlace. Intenta nuevamente.';
   static const String emailVerifCheckError =
       'Error al verificar. Intenta nuevamente.';
 

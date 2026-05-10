@@ -6,8 +6,10 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../exceptions/app_exceptions.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
+import '../supabase/supabase_client.dart';
 
 /// Repositorio de autenticación de GGSS.cl
 class AuthRepository {
@@ -71,6 +73,21 @@ class AuthRepository {
       phone: phone,
       alias: alias,
     );
+
+    // Verificar unicidad del RUT antes de crear el perfil.
+    // Si el RUT ya existe, lanzar excepción (el usuario auth quedará sin perfil
+    // pero el constraint en BD también lo bloqueará en el siguiente intento).
+    if (response.user != null) {
+      final existing = await SupabaseClientProvider.client
+          .from('profiles')
+          .select('id')
+          .eq('rut', rut)
+          .limit(1)
+          .maybeSingle();
+      if (existing != null) {
+        throw const RutAlreadyExistsException();
+      }
+    }
 
     // Crear perfil en 'profiles' si el usuario fue creado correctamente.
     // El error se ignora: si falla, ProfileScreen lo creará al cargar.
