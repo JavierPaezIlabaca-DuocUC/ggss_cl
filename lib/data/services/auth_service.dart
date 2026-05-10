@@ -66,7 +66,7 @@ class AuthService {
     String? phone,
     String? alias,
   }) async {
-    return await _client.auth.signUp(
+    final response = await _client.auth.signUp(
       email: email.trim(),
       password: password,
       data: {
@@ -81,6 +81,18 @@ class AuthService {
       emailRedirectTo:
           'https://vxbotzyieemxapqshfgq.supabase.co/functions/v1/auth-confirm',
     );
+
+    // Supabase puede estar configurado con "Prevent user enumeration" habilitado.
+    // En ese modo, registrar un correo ya existente devuelve respuesta exitosa
+    // pero con identities vacío, en lugar de lanzar un AuthException.
+    // Detectamos ese caso aquí y lanzamos AuthException manualmente para que
+    // AuthNotifier.signUp() muestre el error correcto en el formulario.
+    if (response.user != null &&
+        (response.user!.identities?.isEmpty ?? false)) {
+      throw AuthException('User already registered');
+    }
+
+    return response;
   }
 
   // ----------------------------------------------------------

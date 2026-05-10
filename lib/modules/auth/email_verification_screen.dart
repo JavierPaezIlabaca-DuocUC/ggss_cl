@@ -152,6 +152,35 @@ class _EmailVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
+    // ----------------------------------------------------------
+    // Listener: navegación automática al confirmar correo por deep link
+    //
+    // Cuando el usuario toca el enlace de verificación en su correo,
+    // la Edge Function auth-confirm redirige a ggss://app. Supabase
+    // procesa el PKCE y emite SIGNED_IN con emailConfirmedAt != null.
+    //
+    // Sin este listener, GgssApp.build() actualizaría home: MainShell()
+    // pero el Navigator (ya inicializado) no navegaría automáticamente.
+    // Este listener maneja la navegación imperativa para ese caso.
+    // ----------------------------------------------------------
+    ref.listen<AsyncValue<AuthState>>(authStateChangesProvider, (_, next) {
+      next.whenData((authState) {
+        if (!mounted) return;
+        if (authState.session?.user.emailConfirmedAt != null) {
+          // Correo confirmado: ir al shell principal
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MainShell()),
+            (route) => false,
+          );
+        } else if (authState.session == null) {
+          // Sesión cerrada externamente: volver al login
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        }
+      });
+    });
     final theme = Theme.of(context);
     final bool isLoading = _isResending || _isChecking;
 
