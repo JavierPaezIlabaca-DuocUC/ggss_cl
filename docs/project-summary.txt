@@ -1,0 +1,607 @@
+================================================================================
+GGSS.cl — PROJECT SUMMARY
+Portafolio de Título PTY4479 — Duoc UC Campus Virtual
+Group 12 — Professor Patricio Oliva Ramírez
+================================================================================
+Generated: 2026-05-10
+Developer: Javier Adrián Benjamín Páez Ilabaca (RUT: 19.033.786-3)
+Scrum roles held: Product Owner, Scrum Master, Developer
+
+================================================================================
+1. PROJECT OVERVIEW AND PURPOSE
+================================================================================
+
+GGSS.cl (Guardia de Seguridad — Sistema de Soporte) is a hybrid multiplatform
+digital platform designed for private security guards in Chile. The target
+audience is the 100,000+ active private security guards working across Chile.
+
+The app addresses a real gap: security guards lack a centralized, professional
+platform to find job opportunities, access training, practice for mandatory
+OS10 (Decreto Supremo N°1.773) certification exams, stay current with industry
+news, and connect as a professional community.
+
+Core value propositions:
+  - Job marketplace: guards find work, employers post vacancies with location
+    and WhatsApp contact built in
+  - Academic hub: training centers post courses leading to OS10 certification
+  - OS10 Simulator: free practice exams with immediate feedback
+  - Industry news: aggregated security-sector news via RSS
+  - Community forum: peer discussion, experience sharing, advice
+
+The app targets Android as the primary platform (most guards use Android)
+while being built as a Flutter multiplatform app (iOS, Web, Windows, macOS,
+Linux all supported by the same codebase).
+
+================================================================================
+2. COMPLETE TECH STACK
+================================================================================
+
+Frontend / App:
+  - Framework: Flutter 3.41.9 (stable channel), Dart 3.x
+  - State management: flutter_riverpod (providers + AsyncNotifier)
+  - Navigation: Flutter Navigator 2.0 (named routes)
+  - UI: Material 3 with custom blue/white theme (light & dark mode)
+  - Local storage: shared_preferences (settings persistence, link warning prefs)
+  - Input formatting: custom PhoneDigitsFormatter (TextInputFormatter)
+  - URL handling: url_launcher
+  - Maps: Google Maps deep-link integration via url_launcher
+
+Backend:
+  - Platform: Supabase (hosted PostgreSQL 15 + PostgREST + GoTrue + Storage)
+  - Auth: Supabase Auth (email/password) with custom email templates
+  - Database: PostgreSQL with Row Level Security (RLS) on all tables
+  - Edge Functions: Deno runtime (deployed on Supabase)
+  - Real-time: Supabase Realtime (forum)
+
+Edge Functions deployed:
+  - news-proxy: Proxies Google News RSS feed, parses XML, returns JSON news items
+  - auth-confirm: Handles email verification deep link redirects (cross-platform)
+
+External APIs:
+  - Google News RSS: security-sector news aggregation (via news-proxy Edge Function)
+  - Google Maps: address-to-map deep links for job/academic offer locations
+
+Development environment:
+  - IDE: VS Code with Flutter extension
+  - Version control: Git / GitHub
+  - CI/CD: manual (flutter build apk --release)
+  - Platform: Windows 11
+
+================================================================================
+3. ALL 11 MODULES — WHAT WAS BUILT
+================================================================================
+
+--- Module 1: Flutter Project + Folder Structure + Theme ---
+  Initialized Flutter project with clean architecture folder structure:
+  lib/core/, lib/data/, lib/models/, lib/modules/, lib/shared/
+  Implemented AppTheme with Material 3 (light + dark), AppColors constants,
+  AppDimensions spacing system, AppStrings localization-ready constants.
+  Supabase client initialization in main.dart.
+
+--- Module 2: Authentication ---
+  Screens: LoginScreen, RegisterScreen, ForgotPasswordScreen,
+           EmailVerificationScreen
+  Features:
+    - Email/password authentication via Supabase Auth
+    - Account type selector: Personal vs Empresa (card-style UI)
+    - Full name, RUT (Chilean tax ID with Módulo 11 validation), phone (+569),
+      email, confirm email, username, password, confirm password
+    - Password visibility toggle (eye icon, no strikethrough variant)
+    - RUT auto-formatter: types "12345678-9", displayed as "12.345.678-9"
+    - Phone field: 8 digits only, +569 prefix non-editable
+    - Terms & Conditions checkbox (required to register)
+    - Terms screen with full T&C text (TermsScreen)
+    - Forgot password with email reset
+    - Email verification screen (shows after registration)
+    - Cross-platform email verification via auth-confirm Edge Function
+    - Custom Supabase email template (confirm-signup.html)
+    - RUT uniqueness check at registration (custom DB query)
+    - Duplicate email/RUT detection with user-friendly error messages
+
+--- Module 3: Navigation Shell + Fixed Header ---
+  MainShell: bottom navigation bar with 5 tabs:
+    1. Briefcase → Job Offers
+    2. Graduation cap → Academic Offers
+    3. Test/document icon → OS10 Exam (center, larger)
+    4. Newspaper → News
+    5. Chat bubble → Forum
+  AppHeader: fixed sticky header (never scrolls):
+    Row 1: [User avatar — left] [Search bar — center] [Hamburger menu ≡ — right]
+    Row 2: [Section title — centered]
+  Floating Action Button (+): visible in Jobs, Academic, Forum sections only
+  Hamburger menu → Settings screen
+  User avatar → Profile screen
+
+--- Module 4: Job Offers (Ofertas Laborales) ---
+  Screens: JobsScreen (list), JobDetailScreen (detail), CreateJobScreen (CRUD)
+  Features:
+    - List of job offers fetched from Supabase table job_offers
+    - Pull-to-refresh
+    - Job card with company, location, salary range, modality
+    - Detail screen: all fields displayed, contact info (phone/email visible)
+    - WhatsApp contact button (opens wa.me deep link)
+    - Google Maps address button (opens maps deep link)
+    - Create job: full form with region/commune selector, WhatsApp, salary range,
+      contract type, modality (presencial/remoto/híbrido), description
+    - Auto-fills WhatsApp from user's registered phone (reuse option)
+    - Edit and delete own posts (owner-only actions)
+    - RLS: only authenticated users can create; only owner can edit/delete
+
+--- Module 5: Academic Offers (Ofertas Académicas) ---
+  Screens: AcademicScreen (list), AcademicDetailScreen (detail),
+           CreateAcademicScreen (CRUD)
+  Features:
+    - Course/training catalog from Supabase table academic_offers
+    - Course cards with institution, modality, duration, price
+    - Detail screen: full info, contact, location, WhatsApp button
+    - Create academic offer: institution, course title, description, duration,
+      price, modality, region/commune selector, WhatsApp contact
+    - Auto-fills WhatsApp from user's registered phone
+    - Edit and delete own posts
+    - RLS policies mirror job_offers
+
+--- Module 6: OS10 Exam Simulator ---
+  Screens: OS10Screen (start), OS10QuestionScreen (exam), OS10ResultsScreen
+  Features:
+    - Questions loaded from Supabase table os10_questions
+    - Configurable number of questions (10, 20, 30, all)
+    - One question at a time, 4 answer choices (A, B, C, D)
+    - Immediate feedback: green correct / red incorrect with explanation
+    - Results screen: score, percentage, per-question review with explanations
+    - Retake exam option
+    - Pull-to-refresh on start screen to reload questions
+    - Offline resilience: shows error state if Supabase unreachable
+
+--- Module 7: News (Noticias) ---
+  Screens: NewsScreen (list), NewsDetailScreen (detail)
+  Features:
+    - Real security-sector news fetched via news-proxy Edge Function
+    - news-proxy queries Google News RSS for "guardia de seguridad Chile"
+      and parses the XML feed into structured JSON
+    - News cards with thumbnail, title, source, date
+    - Detail screen: full article content, source link
+    - External link warning dialog before opening URLs
+    - Fallback to static curated news if Edge Function unreachable
+    - Pull-to-refresh
+
+--- Module 8: Community Forum (Foro) ---
+  Screens: ForumScreen (list), ForumPostDetailScreen (post + comments),
+           CreatePostScreen
+  Features:
+    - Posts and comments stored in Supabase (forum_posts, forum_comments)
+    - Real-time updates via Supabase Realtime channel
+    - Create post: title + content (rich text)
+    - Comment on posts
+    - Author avatar and username displayed
+    - Like/upvote system
+    - Edit and delete own posts/comments
+    - External link warning for URLs in post content
+    - Public profile link on post author avatar
+    - RLS: read is public, write requires auth, edit/delete owner-only
+
+--- Module 9: Profile ---
+  Screens: ProfileScreen (own), PublicProfileScreen (others), EditProfileScreen
+  Features:
+    - Profile info: avatar, full name, username, bio, location, account type
+    - Privacy controls: show/hide email, phone, posts (per-field toggle)
+    - Edit profile form
+    - Avatar upload (Supabase Storage)
+    - View other users' public profiles
+    - Account deletion option in settings
+
+--- Module 10: Settings ---
+  Screens: SettingsScreen, TermsScreen
+  Features:
+    - Theme selector: Light / Dark mode (persisted via SharedPreferences)
+    - Default section on launch: dropdown (Jobs, Academic, OS10, News, Forum)
+    - About section: app version, developer info, academic context
+    - Terms and Conditions viewer (TermsScreen)
+    - Account management: change password, delete account
+
+--- Module 11: Search ---
+  Screens: SearchScreen, AdvancedSearchScreen
+  Features:
+    - Unified search: Jobs + Academic + Forum + News in one query
+    - OS10 excluded from search (exam content not searchable)
+    - Tapping header search bar opens SearchScreen
+    - Advanced search filters:
+        Section toggles: Jobs, Academic, Forum, News (checkboxes)
+        Time filter: All / Today / This week / Month / Year / Custom range
+        Location filter: Region dropdown (optional)
+        Commune filter: multi-select dialog (optional, shows when region selected)
+          - Region only: filters by region ilike
+          - Region + communes: filters by any selected commune (OR ilike)
+    - Search results grouped by section with section headers
+    - Empty state per section if no results
+
+================================================================================
+4. BUG FIX GROUPS 1–8 AND PROMPTS A–E
+================================================================================
+
+--- Group 1: Critical Bugs ---
+  - Logout was not clearing local state (fixed auth state reset)
+  - Email verification screen not dismissing after verification
+  - OS10 exam not refreshing questions on second launch
+  - Forum real-time subscription leaking after navigation
+
+--- Group 2: Registration Improvements and Auth Changes ---
+  - Added username (alias) field to registration
+  - Improved RUT validation error messages
+  - Auth flow: redirect to email verification after register
+  - Profile auto-created on first login via Supabase trigger
+
+--- Group 3: Form UX Improvements ---
+  - TextFormField focus traversal (Next button on keyboard)
+  - Keyboard dismiss on form submit
+  - Form scroll to first error field on validation failure
+  - Added helperText to phone field ("Solo 8 dígitos, sin el +569")
+  - Improved empty state widgets across all list screens
+
+--- Group 4: Chile Region and Commune Location Selector ---
+  - Built ChileLocationSelector widget (region dropdown + commune multi-select)
+  - Integrated into CreateJobScreen and CreateAcademicScreen
+  - Location stored as "Región — Comunas" string in DB
+  - Used 16 official regions of Chile with all communes
+
+--- Group 5: OS10 Simulator Improvements ---
+  - Added per-question explanations on results screen
+  - Question randomization
+  - Configurable question count (10/20/30/all)
+  - Progress indicator during exam (question X of Y)
+  - Score breakdown with pass/fail threshold (70%)
+
+--- Group 6: Profile and Privacy Improvements ---
+  - Added privacy columns to profiles table (migration):
+    show_email BOOLEAN DEFAULT false
+    show_phone BOOLEAN DEFAULT false
+    show_posts BOOLEAN DEFAULT true
+  - Privacy toggle UI in EditProfileScreen
+  - Public profile respects privacy settings
+  - Avatar upload to Supabase Storage
+
+--- Group 7: Supabase Security Hardening and Indexes ---
+  - Reviewed and tightened all RLS policies
+  - Added missing indexes on foreign keys (created_by, post_id)
+  - Ensured service role not used in client code
+  - Validated anon key permissions per table
+  - Forum: fixed PGRST200 join errors with manual profile lookup
+
+--- Group 8: Final Polish and Cross-Platform Preparation ---
+  - Consistent spacing using AppDimensions throughout
+  - Dark mode polish (contrast, icon colors, surface colors)
+  - Keyboard safe area handling (resizeToAvoidBottomInset)
+  - Platform-adaptive UI (adaptive icons, safe areas)
+  - Loading states and error states on all async operations
+
+--- Prompt A: Environment Checks + Auth Hardening ---
+  - Environment check on app launch (Supabase reachability)
+  - RUT uniqueness enforced at registration (DB query before auth signup)
+  - Admin can delete users (service role endpoint)
+  - Duplicate email and RUT detection with specific error messages
+  - Custom AppException hierarchy (lib/data/exceptions/app_exceptions.dart)
+
+--- Prompt B: Form UX Polish ---
+  - RUT auto-formatter: live formatting as user types (12.345.678-9)
+  - Phone formatting unified across all screens (+569 prefix, 8 digits)
+  - Confirm email field added to RegisterScreen
+  - Terms and Conditions screen built (TermsScreen)
+  - T&C checkbox required before registration allowed
+  - SharedPreferences-based setting persistence
+
+--- Prompt C: Cross-Platform Email Verification ---
+  - auth-confirm Edge Function deployed to handle email verification deep links
+  - Deep link scheme configured for Android (ggss://auth/confirm)
+  - Supabase email template updated (supabase/email-templates/confirm-signup.html)
+  - EmailVerificationScreen redesigned for clarity
+  - Auth credentials renamed to "credenciales" in Spanish UI
+
+--- Prompt D: Contact Info + Maps Integration ---
+  - Contact info (phone, email) visible in job and academic detail screens
+  - Phone reuse: WhatsApp field auto-fills from user's registered phone
+  - Google Maps address field added to job and academic create forms
+  - WhatsApp URL corrected (wa.me/56XXXXXXXXX format)
+
+--- Prompt E: Final Fixes ---
+  - FIX 1: Search location filter — commune dropdown now appears when region
+    selected; commune selection is optional; if only region: ilike on region;
+    if region + communes: OR ilike on each commune
+  - FIX 2: Warning texts truncation — errorMaxLines: 4 added to both
+    InputDecorationTheme (light and dark) so all form errors wrap properly
+    on narrow Android screens; confirmed no overflow on error Text widgets
+  - FIX 3: +569 prefix visual styling — prefixStyle now includes
+    fontWeight: bold AND color: AppColors.primaryBlue in all 3 screens
+    (RegisterScreen, CreateJobScreen, CreateAcademicScreen)
+  - FIX 4: docs/environment-notes.md created documenting that neither
+    PostgreSQL nor Node.js are required locally
+  - Removed .claude/settings.local.json from git tracking (contained
+    Supabase service role key; added to .gitignore)
+
+================================================================================
+5. SUPABASE SCHEMA
+================================================================================
+
+All tables are in the public schema.
+All tables have Row Level Security (RLS) enabled.
+
+--- Table: profiles ---
+  id              UUID PK (references auth.users.id)
+  full_name       TEXT NOT NULL
+  username        TEXT UNIQUE NOT NULL
+  rut             TEXT UNIQUE NOT NULL
+  phone           TEXT
+  account_type    TEXT DEFAULT 'personal'  -- 'personal' | 'empresa'
+  bio             TEXT
+  avatar_url      TEXT
+  show_email      BOOLEAN DEFAULT false
+  show_phone      BOOLEAN DEFAULT false
+  show_posts      BOOLEAN DEFAULT true
+  created_at      TIMESTAMPTZ DEFAULT now()
+  updated_at      TIMESTAMPTZ DEFAULT now()
+
+  RLS:
+    - SELECT: public (all authenticated users can read)
+    - INSERT: auth.uid() = id
+    - UPDATE: auth.uid() = id
+    - DELETE: auth.uid() = id
+
+--- Table: job_offers ---
+  id              UUID PK DEFAULT gen_random_uuid()
+  title           TEXT NOT NULL
+  company         TEXT NOT NULL
+  description     TEXT
+  location        TEXT                -- "Región — Comunas" format
+  address         TEXT                -- Google Maps searchable address
+  salary_min      INTEGER
+  salary_max      INTEGER
+  contract_type   TEXT                -- indefinido, plazo fijo, honorarios
+  modality        TEXT                -- presencial, remoto, híbrido
+  whatsapp        TEXT                -- "+56912345678"
+  contact_email   TEXT
+  created_by      UUID REFERENCES profiles(id)
+  created_at      TIMESTAMPTZ DEFAULT now()
+  updated_at      TIMESTAMPTZ DEFAULT now()
+
+  RLS:
+    - SELECT: public authenticated
+    - INSERT: authenticated (created_by = auth.uid())
+    - UPDATE: created_by = auth.uid()
+    - DELETE: created_by = auth.uid()
+
+--- Table: academic_offers ---
+  id              UUID PK DEFAULT gen_random_uuid()
+  title           TEXT NOT NULL
+  institution     TEXT NOT NULL
+  description     TEXT
+  duration        TEXT                -- e.g. "40 horas"
+  price           INTEGER             -- CLP
+  modality        TEXT                -- presencial, online, híbrido
+  location        TEXT                -- "Región — Comunas"
+  address         TEXT
+  whatsapp        TEXT
+  contact_email   TEXT
+  created_by      UUID REFERENCES profiles(id)
+  created_at      TIMESTAMPTZ DEFAULT now()
+  updated_at      TIMESTAMPTZ DEFAULT now()
+
+  RLS: same as job_offers
+
+--- Table: os10_questions ---
+  id              UUID PK DEFAULT gen_random_uuid()
+  question        TEXT NOT NULL
+  option_a        TEXT NOT NULL
+  option_b        TEXT NOT NULL
+  option_c        TEXT NOT NULL
+  option_d        TEXT NOT NULL
+  correct_answer  TEXT NOT NULL       -- 'A' | 'B' | 'C' | 'D'
+  explanation     TEXT
+  category        TEXT
+  created_at      TIMESTAMPTZ DEFAULT now()
+
+  RLS:
+    - SELECT: public (read-only for all, including anon)
+    - INSERT/UPDATE/DELETE: service role only (questions managed by admin)
+
+--- Table: forum_posts ---
+  id              UUID PK DEFAULT gen_random_uuid()
+  title           TEXT NOT NULL
+  content         TEXT NOT NULL
+  created_by      UUID REFERENCES profiles(id)
+  likes_count     INTEGER DEFAULT 0
+  comments_count  INTEGER DEFAULT 0
+  created_at      TIMESTAMPTZ DEFAULT now()
+  updated_at      TIMESTAMPTZ DEFAULT now()
+
+  RLS:
+    - SELECT: public authenticated
+    - INSERT: authenticated (created_by = auth.uid())
+    - UPDATE: created_by = auth.uid() (own posts)
+    - DELETE: created_by = auth.uid()
+
+--- Table: forum_comments ---
+  id              UUID PK DEFAULT gen_random_uuid()
+  post_id         UUID REFERENCES forum_posts(id) ON DELETE CASCADE
+  content         TEXT NOT NULL
+  created_by      UUID REFERENCES profiles(id)
+  created_at      TIMESTAMPTZ DEFAULT now()
+  updated_at      TIMESTAMPTZ DEFAULT now()
+
+  RLS: same as forum_posts
+
+--- Indexes (beyond PKs) ---
+  idx_job_offers_created_by       ON job_offers(created_by)
+  idx_job_offers_created_at       ON job_offers(created_at)
+  idx_academic_created_by         ON academic_offers(created_by)
+  idx_academic_created_at         ON academic_offers(created_at)
+  idx_forum_posts_created_by      ON forum_posts(created_by)
+  idx_forum_posts_created_at      ON forum_posts(created_at)
+  idx_forum_comments_post_id      ON forum_comments(post_id)
+  idx_forum_comments_created_by   ON forum_comments(created_by)
+
+================================================================================
+6. EDGE FUNCTIONS DEPLOYED
+================================================================================
+
+--- news-proxy ---
+  Path:    supabase/functions/news-proxy/index.ts
+  Runtime: Deno (Supabase Edge Functions)
+  Purpose: Proxies Google News RSS feed to bypass CORS restrictions.
+           Queries the RSS feed for "guardia de seguridad Chile",
+           parses the XML response, extracts title/link/pubDate/description,
+           returns structured JSON array.
+  Auth:    Requires valid Supabase JWT (called via supabase.functions.invoke)
+  Called by: NewsService in Flutter app
+
+--- auth-confirm ---
+  Path:    supabase/functions/auth-confirm/index.ts
+  Runtime: Deno (Supabase Edge Functions)
+  Purpose: Handles email verification link clicks from any platform
+           (Android, iOS, web, desktop). Supabase sends the verification
+           link to this Edge Function URL. The function exchanges the
+           token with Supabase Auth and redirects to the app deep link
+           (ggss://auth/confirm) or a web fallback page.
+  Called by: Supabase Auth (email verification link)
+  Email template: supabase/email-templates/confirm-signup.html
+
+================================================================================
+7. KNOWN LIMITATIONS AND FUTURE IMPROVEMENTS
+================================================================================
+
+Current Limitations:
+  - Google News RSS via Edge Function may have rate limits; app falls back
+    to static curated news when Edge Function is unavailable
+  - No push notifications (guards won't get alerts for new jobs or forum replies)
+  - OS10 questions are limited to manually entered content; no auto-update
+  - Search does not include OS10 questions by design (exam content excluded)
+  - No offline mode: app requires internet for all data except static content
+  - No pagination on list screens (limited to 20-50 most recent items)
+  - Avatar images stored in Supabase Storage with no CDN optimization
+
+Deferred Future Features (explicitly out of scope for this version):
+  - Google Sign-In authentication
+  - Apple Sign-In authentication
+  - English language support / i18n (app is Spanish-only)
+  - Push notifications (FCM / APNs)
+  - In-app messaging between users
+  - Job application tracking
+  - Resume/CV upload and storage
+  - Admin panel for content moderation
+  - Analytics and usage metrics
+
+Technical Debt:
+  - Search results are not paginated; large result sets may be slow
+  - Forum real-time subscription should have reconnect logic for unstable
+    mobile connections
+  - No integration tests (unit tests only cover validators)
+
+================================================================================
+8. FILE STRUCTURE OVERVIEW
+================================================================================
+
+ggss_cl/
+├── lib/
+│   ├── main.dart                     # App entry point, Supabase init
+│   ├── core/
+│   │   ├── constants/
+│   │   │   ├── app_colors.dart       # All app colors (never hardcode)
+│   │   │   ├── app_dimensions.dart   # Spacing, radius, icon sizes
+│   │   │   ├── app_strings.dart      # UI strings (Spanish)
+│   │   │   ├── chile_locations.dart  # 16 regions + all communes map
+│   │   │   ├── supabase_config.dart  # Supabase URL + anon key
+│   │   │   └── terms_and_conditions.dart  # Full T&C text
+│   │   ├── theme/
+│   │   │   └── app_theme.dart        # Material 3 light + dark themes
+│   │   └── utils/
+│   │       ├── link_handler.dart     # External URL launch + warning dialog
+│   │       └── validators.dart       # Form validators (RUT, email, phone...)
+│   ├── data/
+│   │   ├── exceptions/
+│   │   │   └── app_exceptions.dart   # Custom exception hierarchy
+│   │   ├── repositories/             # Thin wrappers calling services
+│   │   ├── services/                 # Direct Supabase query logic
+│   │   ├── sources/
+│   │   │   └── news_static_data.dart # Fallback static news items
+│   │   └── supabase/
+│   │       └── supabase_client.dart  # Singleton Supabase client accessor
+│   ├── models/                       # Dart data classes (fromMap/toMap)
+│   ├── modules/
+│   │   ├── auth/                     # Login, Register, ForgotPwd, Verify
+│   │   ├── academic/                 # Academic offers CRUD + detail
+│   │   ├── forum/                    # Forum posts + comments
+│   │   ├── jobs/                     # Job offers CRUD + detail
+│   │   ├── news/                     # News list + detail
+│   │   ├── os10/                     # Exam start, question, results
+│   │   ├── profile/                  # Own profile, public profile, edit
+│   │   ├── search/                   # Unified search + advanced filters
+│   │   ├── settings/                 # Theme, default section, T&C, about
+│   │   └── shell/
+│   │       └── main_shell.dart       # Bottom nav + FAB + header wrapper
+│   └── shared/
+│       ├── formatters/
+│       │   └── phone_digits_formatter.dart  # 8-digit phone input mask
+│       └── widgets/                  # Reusable across modules
+│           ├── app_header.dart       # Fixed sticky two-row header
+│           ├── app_search_bar.dart   # Search bar widget
+│           ├── chile_location_selector.dart  # Region + commune picker
+│           ├── empty_state_widget.dart
+│           ├── error_widget.dart
+│           ├── external_link_dialog.dart     # External URL warning
+│           ├── loading_indicator.dart
+│           ├── password_text_field.dart      # Eye icon toggle
+│           └── required_fields_note.dart
+├── supabase/
+│   ├── email-templates/
+│   │   └── confirm-signup.html       # Custom verification email
+│   ├── functions/
+│   │   ├── auth-confirm/index.ts     # Email verification handler
+│   │   └── news-proxy/index.ts       # Google News RSS proxy
+│   └── migrations/
+│       └── 20260508165108_group6_privacy_columns.sql
+├── docs/
+│   ├── environment-notes.md          # PostgreSQL / Node.js not required
+│   └── project-summary.txt          # This file
+├── android/                          # Android platform project
+├── ios/                              # iOS platform project
+├── web/                              # Web platform project
+├── pubspec.yaml                      # Flutter dependencies
+├── CLAUDE.md                         # Claude Code project instructions
+└── .gitignore
+
+Total Dart source files: 87
+Total modules: 11 (+ auth = 12 counting auth as module 2)
+Total Edge Functions: 2
+Total DB tables: 5 (profiles, job_offers, academic_offers, os10_questions,
+                     forum_posts, forum_comments = 6)
+
+================================================================================
+9. ENVIRONMENT SETUP REQUIREMENTS
+================================================================================
+
+Required:
+  - Flutter SDK: stable channel, version 3.41.9 or newer
+    Install: https://flutter.dev/docs/get-started/install
+  - Android SDK: included in Android Studio or installed separately
+    Min SDK: 21 (Android 5.0)
+    Target SDK: 34 (Android 14)
+  - Git: for version control
+
+To run the app:
+  1. git clone https://github.com/JavierPaezIlabaca-DuocUC/ggss_cl
+  2. cd ggss_cl
+  3. flutter pub get
+  4. flutter run  (with Android device/emulator connected)
+
+To build release APK:
+  flutter build apk --release
+  Output: build/app/outputs/flutter-apk/app-release.apk
+
+NOT Required (see docs/environment-notes.md for details):
+  - PostgreSQL (use Supabase hosted instance)
+  - Node.js (Edge Functions use Deno on Supabase servers)
+
+Optional:
+  - Supabase CLI: to deploy Edge Functions or run local migrations
+    Install: https://supabase.com/docs/guides/cli
+
+================================================================================
+END OF DOCUMENT
+================================================================================

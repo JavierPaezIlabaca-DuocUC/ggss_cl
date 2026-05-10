@@ -68,6 +68,11 @@ class SearchFilters {
   /// Filtro de ubicación: nombre de región (ilike en columna location)
   final String? locationFilter;
 
+  /// Comunas seleccionadas para filtro granular (opcional).
+  /// Si está vacío y hay región, filtra solo por región.
+  /// Si tiene valores, filtra por cualquiera de las comunas (OR).
+  final List<String> locationCommunes;
+
   const SearchFilters({
     this.searchJobs = true,
     this.searchAcademic = true,
@@ -77,6 +82,7 @@ class SearchFilters {
     this.customDateFrom,
     this.customDateTo,
     this.locationFilter,
+    this.locationCommunes = const [],
   });
 
   /// Filtros con todas las secciones habilitadas y sin restricción de fecha
@@ -114,6 +120,7 @@ class SearchFilters {
     DateTime? customDateFrom,
     DateTime? customDateTo,
     String? locationFilter,
+    List<String>? locationCommunes,
     bool clearLocationFilter = false,
   }) {
     return SearchFilters(
@@ -126,6 +133,9 @@ class SearchFilters {
       customDateTo: customDateTo ?? this.customDateTo,
       locationFilter:
           clearLocationFilter ? null : (locationFilter ?? this.locationFilter),
+      locationCommunes: clearLocationFilter
+          ? const []
+          : (locationCommunes ?? this.locationCommunes),
     );
   }
 }

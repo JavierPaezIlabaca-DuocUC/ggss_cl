@@ -103,6 +103,8 @@ class AppTheme {
           horizontal: AppDimensions.spacingMd,
           vertical: AppDimensions.spacingMd,
         ),
+        // Prevents error messages from being cut off on narrow Android screens
+        errorMaxLines: 4,
       ),
 
       // ----------------------------------------------------------
@@ -266,6 +268,8 @@ class AppTheme {
         ),
         labelStyle: const TextStyle(color: AppColors.textSecondaryDark),
         hintStyle: const TextStyle(color: AppColors.textSecondaryDark),
+        // Prevents error messages from being cut off on narrow Android screens
+        errorMaxLines: 4,
       ),
 
       // ----------------------------------------------------------

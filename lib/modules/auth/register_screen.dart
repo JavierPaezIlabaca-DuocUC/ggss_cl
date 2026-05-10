@@ -273,7 +273,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         helperText: AppStrings.authPhoneHelper,
                         prefixIcon: Icon(Icons.phone_outlined),
                         prefixText: '+569 ',
-                        prefixStyle: TextStyle(fontWeight: FontWeight.bold),
+                        prefixStyle: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryBlue,
+                        ),
                       ),
                     ),
 

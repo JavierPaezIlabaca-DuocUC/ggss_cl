@@ -82,7 +82,7 @@ class _ChileLocationSelectorState extends State<ChileLocationSelector> {
 
     final result = await showDialog<List<String>>(
       context: context,
-      builder: (_) => _CommunePickerDialog(
+      builder: (_) => CommunePickerDialog(
         region: _selectedRegion!,
         allCommunes: communes,
         initialSelected: current,
@@ -237,23 +237,31 @@ class _ChileLocationSelectorState extends State<ChileLocationSelector> {
 
 /// Diálogo con lista de comunas de una región para selección múltiple.
 /// Incluye barra de búsqueda para filtrar comunas.
-class _CommunePickerDialog extends StatefulWidget {
+///
+/// Si [allowEmpty] es true, el botón Confirmar siempre está habilitado
+/// (permite confirmar sin comunas seleccionadas, útil en filtros opcionales).
+class CommunePickerDialog extends StatefulWidget {
   final String region;
   final List<String> allCommunes;
   final List<String> initialSelected;
 
-  const _CommunePickerDialog({
+  /// Si es true, permite confirmar con cero comunas seleccionadas
+  final bool allowEmpty;
+
+  const CommunePickerDialog({
+    super.key,
     required this.region,
     required this.allCommunes,
     required this.initialSelected,
+    this.allowEmpty = false,
   });
 
   @override
-  State<_CommunePickerDialog> createState() =>
+  State<CommunePickerDialog> createState() =>
       _CommunePickerDialogState();
 }
 
-class _CommunePickerDialogState extends State<_CommunePickerDialog> {
+class _CommunePickerDialogState extends State<CommunePickerDialog> {
   late Set<String> _selected;
   String _searchQuery = '';
 
@@ -350,9 +358,9 @@ class _CommunePickerDialogState extends State<_CommunePickerDialog> {
           child: const Text('Cancelar'),
         ),
         FilledButton(
-          onPressed: _selected.isEmpty
-              ? null
-              : () => Navigator.of(context).pop(_selected.toList()),
+          onPressed: (widget.allowEmpty || _selected.isNotEmpty)
+              ? () => Navigator.of(context).pop(_selected.toList())
+              : null,
           child: Text(
             _selected.isEmpty
                 ? 'Confirmar'

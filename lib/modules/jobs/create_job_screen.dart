@@ -647,7 +647,10 @@ class _WhatsAppField extends StatelessWidget {
         labelText: 'WhatsApp',
         hintText: '12 34 56 78',
         prefixText: '+569 ',
-        prefixStyle: TextStyle(fontWeight: FontWeight.bold),
+        prefixStyle: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: AppColors.primaryBlue,
+        ),
       ),
     );
   }

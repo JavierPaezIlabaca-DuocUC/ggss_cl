@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/constants/chile_locations.dart';
 import '../../models/search_result_model.dart';
+import '../../shared/widgets/chile_location_selector.dart';
 
 /// Pantalla de búsqueda avanzada con filtros de sección y período
 class AdvancedSearchScreen extends StatefulWidget {
@@ -43,6 +44,9 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
 
   // Filtro de ubicación: región seleccionada (opcional)
   String? _locationRegion;
+
+  // Comunas seleccionadas dentro de la región (opcional)
+  List<String> _locationCommunes = [];
 
   // ----------------------------------------------------------
   // Etiquetas de los períodos de tiempo
@@ -73,6 +77,7 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
     _customFrom = f.customDateFrom;
     _customTo = f.customDateTo;
     _locationRegion = f.locationFilter;
+    _locationCommunes = List.from(f.locationCommunes);
   }
 
   // ----------------------------------------------------------
@@ -118,8 +123,32 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
           _locationRegion != null && _locationRegion!.isNotEmpty
               ? _locationRegion
               : null,
+      locationCommunes: _locationCommunes,
     );
     Navigator.of(context).pop(filters);
+  }
+
+  // ----------------------------------------------------------
+  // Abre el diálogo de selección de comunas
+  // ----------------------------------------------------------
+
+  Future<void> _openCommuneDialog() async {
+    if (_locationRegion == null) return;
+    final communes = chileLocations[_locationRegion] ?? [];
+
+    final result = await showDialog<List<String>>(
+      context: context,
+      builder: (_) => CommunePickerDialog(
+        region: _locationRegion!,
+        allCommunes: communes,
+        initialSelected: _locationCommunes,
+        allowEmpty: true,
+      ),
+    );
+
+    if (result != null) {
+      setState(() => _locationCommunes = result);
+    }
   }
 
   // ----------------------------------------------------------
@@ -208,7 +237,10 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
                       tooltip: 'Limpiar región',
-                      onPressed: () => setState(() => _locationRegion = null),
+                      onPressed: () => setState(() {
+                        _locationRegion = null;
+                        _locationCommunes = [];
+                      }),
                     )
                   : null,
               isDense: true,
@@ -225,8 +257,64 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                 ),
               ),
             ],
-            onChanged: (region) => setState(() => _locationRegion = region),
+            onChanged: (region) => setState(() {
+              _locationRegion = region;
+              _locationCommunes = []; // reset comunas al cambiar región
+            }),
           ),
+
+          // --------------------------------------------------
+          // Selector de comunas (solo si hay región seleccionada)
+          // --------------------------------------------------
+          if (_locationRegion != null) ...[
+            const SizedBox(height: 12),
+
+            // Botón para abrir selector de comunas
+            InkWell(
+              onTap: _openCommuneDialog,
+              borderRadius: BorderRadius.circular(8),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  hintText: 'Todas las comunas',
+                  labelText: 'Comunas (opcional)',
+                  prefixIcon: const Icon(Icons.location_city_outlined),
+                  suffixIcon: const Icon(Icons.arrow_drop_down),
+                  isDense: true,
+                ),
+                child: Text(
+                  _locationCommunes.isEmpty
+                      ? 'Todas las comunas'
+                      : '${_locationCommunes.length} '
+                          '${_locationCommunes.length == 1 ? 'comuna' : 'comunas'} seleccionadas',
+                  style: _locationCommunes.isEmpty
+                      ? TextStyle(color: Theme.of(context).hintColor)
+                      : null,
+                ),
+              ),
+            ),
+
+            // Chips de comunas seleccionadas
+            if (_locationCommunes.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: _locationCommunes.map((commune) {
+                  return Chip(
+                    label: Text(
+                      commune,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                    deleteIcon: const Icon(Icons.close, size: 14),
+                    onDeleted: () => setState(
+                      () => _locationCommunes =
+                          _locationCommunes.where((c) => c != commune).toList(),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
 
           const SizedBox(height: 20),
           const Divider(),
@@ -322,6 +410,7 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                 _customFrom = null;
                 _customTo = null;
                 _locationRegion = null;
+                _locationCommunes = [];
               });
             },
             child: Text(

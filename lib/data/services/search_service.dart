@@ -48,6 +48,7 @@ class SearchService {
               dateFrom: range.from,
               dateTo: range.to,
               locationFilter: filters.locationFilter,
+              locationCommunes: filters.locationCommunes,
             )
           : Future.value(<JobModel>[]),
       filters.searchAcademic
@@ -56,6 +57,7 @@ class SearchService {
               dateFrom: range.from,
               dateTo: range.to,
               locationFilter: filters.locationFilter,
+              locationCommunes: filters.locationCommunes,
             )
           : Future.value(<AcademicOfferModel>[]),
       filters.searchForum
@@ -86,6 +88,7 @@ class SearchService {
     DateTime? dateFrom,
     DateTime? dateTo,
     String? locationFilter,
+    List<String> locationCommunes = const [],
   }) async {
     final q = '%$query%';
 
@@ -96,8 +99,13 @@ class SearchService {
         .or('title.ilike.$q,company.ilike.$q,'
             'location.ilike.$q,description.ilike.$q');
 
-    // Filtro de ubicación: busca la región en la columna location
-    if (locationFilter != null && locationFilter.isNotEmpty) {
+    // Filtro de ubicación: por comunas específicas (OR) o por región
+    if (locationCommunes.isNotEmpty) {
+      final communeOr = locationCommunes
+          .map((c) => 'location.ilike.%$c%')
+          .join(',');
+      builder = builder.or(communeOr);
+    } else if (locationFilter != null && locationFilter.isNotEmpty) {
       builder = builder.ilike('location', '%$locationFilter%');
     }
 
@@ -130,6 +138,7 @@ class SearchService {
     DateTime? dateFrom,
     DateTime? dateTo,
     String? locationFilter,
+    List<String> locationCommunes = const [],
   }) async {
     final q = '%$query%';
 
@@ -138,8 +147,13 @@ class SearchService {
         .select()
         .or('title.ilike.$q,institution.ilike.$q,description.ilike.$q');
 
-    // Filtro de ubicación: busca la región en la columna location (si existe)
-    if (locationFilter != null && locationFilter.isNotEmpty) {
+    // Filtro de ubicación: por comunas específicas (OR) o por región
+    if (locationCommunes.isNotEmpty) {
+      final communeOr = locationCommunes
+          .map((c) => 'location.ilike.%$c%')
+          .join(',');
+      builder = builder.or(communeOr);
+    } else if (locationFilter != null && locationFilter.isNotEmpty) {
       builder = builder.ilike('location', '%$locationFilter%');
     }
 
