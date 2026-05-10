@@ -226,12 +226,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     } on AuthException catch (e) {
       if (!mounted) return;
       final msg = e.message.toLowerCase();
-      if (msg.contains('already') ||
+      // Supabase devuelve statusCode 422 / mensajes como "User already registered"
+      // cuando el correo pertenece a otra cuenta
+      final isDuplicate = e.statusCode == '422' ||
+          msg.contains('already') ||
           msg.contains('registered') ||
           msg.contains('taken') ||
-          msg.contains('email address')) {
+          msg.contains('email address') ||
+          msg.contains('email') && msg.contains('use');
+      if (isDuplicate) {
         setState(
-          () => _emailError = 'Este correo ya está registrado en otra cuenta.',
+          () => _emailError =
+              'Este correo electrónico ya está registrado en otra cuenta.',
         );
       } else {
         setState(() => _emailError = e.message);

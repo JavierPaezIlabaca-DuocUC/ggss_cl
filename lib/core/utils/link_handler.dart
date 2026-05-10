@@ -102,7 +102,19 @@ class _ExternalLinkDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text(AppStrings.externalLinkTitle),
+      // X en la esquina superior derecha: cierra sin abrir URL ni guardar preferencia
+      titlePadding: const EdgeInsets.fromLTRB(24, 16, 8, 0),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Flexible(child: Text(AppStrings.externalLinkTitle)),
+          IconButton(
+            icon: const Icon(Icons.close),
+            tooltip: 'Cancelar',
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
       content: const Text(AppStrings.externalLinkMessage),
       actions: [
         // Opción: no volver a mostrar (guarda en SharedPreferences)

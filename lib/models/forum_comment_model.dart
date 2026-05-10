@@ -46,7 +46,8 @@ class ForumCommentModel {
       content: map['content'] as String? ?? '',
       userId: map['created_by'] as String? ?? '',
       authorName: profiles?['full_name'] as String?,
-      authorFirstName: profiles?['first_name'] as String?,
+      authorFirstName: profiles?['first_name'] as String? ??
+          (profiles?['full_name'] as String?)?.split(' ').first,
       authorAvatarUrl: profiles?['avatar_url'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
