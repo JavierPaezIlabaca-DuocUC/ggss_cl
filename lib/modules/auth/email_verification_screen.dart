@@ -31,7 +31,38 @@ class EmailVerificationScreen extends ConsumerStatefulWidget {
 }
 
 class _EmailVerificationScreenState
-    extends ConsumerState<EmailVerificationScreen> {
+    extends ConsumerState<EmailVerificationScreen>
+    with WidgetsBindingObserver {
+  // ----------------------------------------------------------
+  // Ciclo de vida: WidgetsBindingObserver para detectar foreground
+  // ----------------------------------------------------------
+
+  @override
+  void initState() {
+    super.initState();
+    // Registrar observer para detectar cuando la app vuelve al primer plano.
+    // Esto permite verificar automáticamente si el correo fue confirmado
+    // cuando el usuario llega a la app desde el enlace de verificación
+    // (deep link ggss://app redirigido por la Edge Function auth-confirm).
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cuando la app vuelve al primer plano (ej. tras abrir el enlace de
+    // verificación en el navegador y ser redirigida vía deep link),
+    // verificar automáticamente si el correo ya fue confirmado.
+    if (state == AppLifecycleState.resumed && mounted) {
+      _checkVerification();
+    }
+  }
+
   // ----------------------------------------------------------
   // Estado local
   // ----------------------------------------------------------

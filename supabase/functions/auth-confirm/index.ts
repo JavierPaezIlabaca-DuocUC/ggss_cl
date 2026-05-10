@@ -225,6 +225,35 @@ Deno.serve(async (req: Request) => {
   }
 
   const email = data.user.email ?? ''
+
+  // ──────────────────────────────────────────
+  // El Supabase Gateway v1 sobreescribe el header Content-Type a 'text/plain'
+  // e inyecta 'Content-Security-Policy: default-src none; sandbox' en TODAS
+  // las respuestas de Edge Functions, sin importar lo que la función devuelva.
+  // Esto impide que el navegador renderice HTML y que se ejecute JavaScript.
+  //
+  // Solución para móvil (caso principal):
+  //   HTTP 302 → ggss://app
+  //   El navegador sigue el redirect sin importar Content-Type.
+  //   Android intercepta el esquema ggss:// y abre la app.
+  //
+  // Solución para escritorio:
+  //   Se devuelve el HTML informativo (visible como texto plano).
+  //   El contenido es legible aunque no esté estilizado.
+  // ──────────────────────────────────────────
+  const userAgent = req.headers.get('user-agent') ?? ''
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(userAgent)
+
+  if (isMobile) {
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': APP_DEEP_LINK,
+        'Access-Control-Allow-Origin': '*',
+      },
+    })
+  }
+
   return new Response(successHtml(email), {
     status: 200,
     headers: HTML_HEADERS,
