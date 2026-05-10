@@ -5,6 +5,7 @@
 // Guarda la preferencia "no volver a mostrar" en SharedPreferences.
 // ============================================================
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,15 +36,12 @@ class LinkHandler {
     final bool skipWarning = prefs.getBool(_prefKeySkipExternalWarning) ?? false;
 
     if (skipWarning) {
-      // El usuario ya aceptó no ver más la advertencia: abrir directamente
       await _launchUrl(url);
       return;
     }
 
-    // Verificar que el contexto sigue montado antes de mostrar diálogo
     if (!context.mounted) return;
 
-    // Mostrar diálogo de advertencia
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -54,7 +52,6 @@ class LinkHandler {
           await _launchUrl(url);
         },
         onDontShowAgain: () async {
-          // Guardar preferencia: no volver a mostrar
           await prefs.setBool(_prefKeySkipExternalWarning, true);
           if (dialogContext.mounted) Navigator.of(dialogContext).pop();
           await _launchUrl(url);
@@ -67,13 +64,21 @@ class LinkHandler {
   // Método privado: ejecuta el lanzamiento de URL
   // ----------------------------------------------------------
 
-  /// Intenta abrir la URL en el navegador externo del dispositivo
+  /// Intenta abrir la URL en el navegador externo del dispositivo.
+  /// Usa LaunchMode.platformDefault en web y externalApplication en móvil/desktop.
   static Future<void> _launchUrl(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) return;
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    // En web, externalApplication fuerza una nueva pestaña con restricciones;
+    // platformDefault deja que el navegador decida cómo abrirla.
+    final mode =
+        kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication;
+
+    try {
+      await launchUrl(uri, mode: mode);
+    } catch (_) {
+      // No se puede abrir la URL en este dispositivo — fallo silencioso
     }
   }
 }

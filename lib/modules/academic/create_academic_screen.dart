@@ -157,7 +157,7 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
             : _addressController.text.trim(),
         url: _urlController.text.trim().isEmpty
             ? null
-            : _urlController.text.trim(),
+            : _normalizeUrl(_urlController.text.trim()),
         createdBy: currentUser.id,
         createdAt: DateTime.now(),
       );
@@ -416,7 +416,7 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
                 _FormField(
                   controller: _urlController,
                   label: 'URL de información o inscripción',
-                  hint: 'https://...',
+                  hint: 'Ej: google.cl o www.google.cl',
                   keyboardType: TextInputType.url,
                   validator: _validateUrl,
                 ),
@@ -456,16 +456,19 @@ class _CreateAcademicScreenState extends ConsumerState<CreateAcademicScreen> {
   }
 
   // ----------------------------------------------------------
-  // Validador de URL (acepta vacío — campo opcional)
+  // Validador y normalizador de URL (campo opcional)
   // ----------------------------------------------------------
 
+  /// Acepta cualquier valor no vacío — _normalizeUrl agrega https:// si falta
   String? _validateUrl(String? value) {
     if (value == null || value.trim().isEmpty) return null;
-    final uri = Uri.tryParse(value.trim());
-    if (uri == null || !uri.hasScheme) {
-      return 'Ingresa una URL válida (debe comenzar con https://)';
-    }
     return null;
+  }
+
+  /// Agrega el esquema https:// si el usuario no lo escribió
+  String _normalizeUrl(String url) {
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return 'https://$url';
   }
 }
 

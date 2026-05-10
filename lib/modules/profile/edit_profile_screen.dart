@@ -3,19 +3,24 @@
 // Pantalla para editar el perfil del usuario.
 //
 // Secciones independientes, cada una con su propio botón:
-//   1. Nombre (primer nombre, apellido paterno, materno)
-//   2. Contraseña (nueva contraseña + confirmación)
-//   3. Correo electrónico (con aviso de confirmación)
-//   4. Teléfono
+//   1. Nombre (RUT solo lectura + primer nombre, apellido paterno, materno)
+//   2. Contraseña (nueva contraseña + confirmación + requisitos)
+//   3. Correo electrónico (actual solo lectura, nuevo, confirmación)
+//   4. Teléfono (actual solo lectura + nuevo con prefijo +569)
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_strings.dart';
+import '../../core/utils/validators.dart';
 import '../../models/profile_model.dart';
+import '../../shared/formatters/phone_digits_formatter.dart';
+import '../../shared/widgets/password_requirements_box.dart';
 import 'profile_providers.dart';
 
 /// Pantalla de edición del perfil del usuario autenticado
@@ -56,7 +61,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   // Controladores: Correo electrónico
   // ----------------------------------------------------------
 
-  late final TextEditingController _emailController;
+  late String _currentEmail;
+  final _newEmailController = TextEditingController();
+  final _confirmEmailController = TextEditingController();
   bool _isSavingEmail = false;
   String? _emailError;
   String? _emailSuccess;
@@ -66,7 +73,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   // Controladores: Teléfono
   // ----------------------------------------------------------
 
-  late final TextEditingController _phoneController;
+  late String _currentPhone;
+  final _newPhoneController = TextEditingController();
   bool _isSavingPhone = false;
   final _phoneFormKey = GlobalKey<FormState>();
 
@@ -86,12 +94,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _lastNameMaternalController = TextEditingController(
       text: widget.profile.lastNameMaternal ?? '',
     );
-    _emailController = TextEditingController(
-      text: Supabase.instance.client.auth.currentUser?.email ?? '',
-    );
-    _phoneController = TextEditingController(
-      text: widget.profile.phone ?? '',
-    );
+    _currentEmail = Supabase.instance.client.auth.currentUser?.email ?? '';
+    _currentPhone = widget.profile.phone ?? '';
   }
 
   @override
@@ -101,13 +105,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _lastNameMaternalController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
+    _newEmailController.dispose();
+    _confirmEmailController.dispose();
+    _newPhoneController.dispose();
     super.dispose();
   }
 
   // ----------------------------------------------------------
-  // Helpers: calcular iniciales del nombre actual
+  // Helpers
   // ----------------------------------------------------------
 
   String _getInitials() {
@@ -145,9 +150,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ? AppStrings.profileUpdateSuccess
               : AppStrings.profileUpdateError,
         ),
-        backgroundColor: success
-            ? null
-            : Theme.of(context).colorScheme.error,
+        backgroundColor: success ? null : Theme.of(context).colorScheme.error,
       ),
     );
 
@@ -200,20 +203,39 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       _emailSuccess = null;
     });
     if (!_emailFormKey.currentState!.validate()) return;
+
+    final newEmail = _newEmailController.text.trim();
+
+    if (newEmail == _currentEmail) {
+      setState(() => _emailError = 'El nuevo correo debe ser diferente al actual.');
+      return;
+    }
+
     setState(() => _isSavingEmail = true);
 
     try {
       await ref
           .read(profileNotifierProvider.notifier)
-          .updateEmail(_emailController.text.trim());
+          .updateEmail(newEmail);
       if (!mounted) return;
       setState(() {
-        _emailSuccess =
-            'Revisa tu nuevo correo para confirmar el cambio.';
+        _emailSuccess = 'Revisa tu nuevo correo para confirmar el cambio.';
       });
+      _newEmailController.clear();
+      _confirmEmailController.clear();
     } on AuthException catch (e) {
       if (!mounted) return;
-      setState(() => _emailError = e.message);
+      final msg = e.message.toLowerCase();
+      if (msg.contains('already') ||
+          msg.contains('registered') ||
+          msg.contains('taken') ||
+          msg.contains('email address')) {
+        setState(
+          () => _emailError = 'Este correo ya está registrado en otra cuenta.',
+        );
+      } else {
+        setState(() => _emailError = e.message);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _emailError = AppStrings.errorGeneral);
@@ -230,14 +252,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     if (!_phoneFormKey.currentState!.validate()) return;
     setState(() => _isSavingPhone = true);
 
+    final digits = _newPhoneController.text.replaceAll(' ', '').trim();
+    final phoneValue = digits.isEmpty ? null : '+569$digits';
+
     final success = await ref
         .read(profileNotifierProvider.notifier)
-        .updatePhone(_phoneController.text.trim().isEmpty
-            ? null
-            : _phoneController.text.trim());
+        .updatePhone(phoneValue);
 
     if (!mounted) return;
     setState(() => _isSavingPhone = false);
+
+    if (success) {
+      setState(() {
+        _currentPhone = phoneValue ?? '';
+        _newPhoneController.clear();
+      });
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -246,9 +276,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ? AppStrings.profileUpdateSuccess
               : AppStrings.profileUpdateError,
         ),
-        backgroundColor: success
-            ? null
-            : Theme.of(context).colorScheme.error,
+        backgroundColor: success ? null : Theme.of(context).colorScheme.error,
       ),
     );
   }
@@ -303,6 +331,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   key: _nameFormKey,
                   child: Column(
                     children: [
+                      // RUT (solo lectura — identificador permanente)
+                      _ReadOnlyField(
+                        label: 'RUT',
+                        value: widget.profile.rut,
+                        icon: Icons.badge_outlined,
+                        helperText:
+                            'El RUT es un identificador permanente y no puede modificarse.',
+                      ),
+
+                      const SizedBox(height: AppDimensions.spacingMd),
+
                       // Primer nombre
                       TextFormField(
                         controller: _firstNameController,
@@ -387,7 +426,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         obscureText: !_showNewPassword,
                         decoration: InputDecoration(
                           labelText: 'Nueva contraseña',
-                          hintText: 'Mínimo 6 caracteres',
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -400,16 +438,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             ),
                           ),
                         ),
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'Ingresa la nueva contraseña.';
-                          }
-                          if (v.length < 6) {
-                            return 'La contraseña debe tener al menos 6 caracteres.';
-                          }
-                          return null;
-                        },
+                        validator: Validators.validateStrongPassword,
                       ),
+
+                      const SizedBox(height: AppDimensions.spacingSm),
+
+                      // Requisitos de contraseña (siempre visible)
+                      const PasswordRequirementsBox(),
 
                       const SizedBox(height: AppDimensions.spacingMd),
 
@@ -429,8 +464,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                   : Icons.visibility_off_outlined,
                             ),
                             onPressed: () => setState(
-                              () =>
-                                  _showConfirmPassword = !_showConfirmPassword,
+                              () => _showConfirmPassword = !_showConfirmPassword,
                             ),
                           ),
                         ),
@@ -442,7 +476,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         },
                       ),
 
-                      // Mensaje de error si las contraseñas no coinciden
                       if (_passwordError != null) ...[
                         const SizedBox(height: AppDimensions.spacingSm),
                         Text(
@@ -479,27 +512,55 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Correo actual (solo lectura)
+                      _ReadOnlyField(
+                        label: 'Correo actual',
+                        value: _currentEmail,
+                        icon: Icons.email_outlined,
+                      ),
+
+                      const SizedBox(height: AppDimensions.spacingMd),
+
+                      // Nuevo correo electrónico
                       TextFormField(
-                        controller: _emailController,
+                        controller: _newEmailController,
                         enabled: !_isSavingEmail,
                         keyboardType: TextInputType.emailAddress,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         decoration: const InputDecoration(
-                          labelText: 'Nuevo correo',
+                          labelText: 'Nuevo correo electrónico',
+                          hintText: 'correo@ejemplo.com',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                        validator: Validators.validateEmail,
+                      ),
+
+                      const SizedBox(height: AppDimensions.spacingMd),
+
+                      // Confirmar nuevo correo
+                      TextFormField(
+                        controller: _confirmEmailController,
+                        enabled: !_isSavingEmail,
+                        keyboardType: TextInputType.emailAddress,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirmar nuevo correo',
                           hintText: 'correo@ejemplo.com',
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) {
-                            return 'Ingresa un correo electrónico.';
+                            return 'Confirma el nuevo correo.';
                           }
-                          if (!v.contains('@')) {
-                            return 'Ingresa un correo válido.';
+                          if (v.trim() != _newEmailController.text.trim()) {
+                            return 'Los correos no coinciden.';
                           }
                           return null;
                         },
                       ),
 
-                      // Mensajes de error o éxito del cambio de correo
                       if (_emailError != null) ...[
                         const SizedBox(height: AppDimensions.spacingSm),
                         Text(
@@ -523,7 +584,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
                       const SizedBox(height: AppDimensions.spacingXs),
 
-                      // Aviso: el cambio de correo requiere confirmación
                       Text(
                         'Se enviará un enlace de confirmación al nuevo correo.',
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -556,15 +616,44 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   key: _phoneFormKey,
                   child: Column(
                     children: [
+                      // Teléfono actual (solo lectura)
+                      _ReadOnlyField(
+                        label: 'Teléfono actual',
+                        value: _currentPhone.isEmpty
+                            ? 'No tienes teléfono registrado'
+                            : _currentPhone,
+                        icon: Icons.phone_outlined,
+                      ),
+
+                      const SizedBox(height: AppDimensions.spacingMd),
+
+                      // Nuevo número de teléfono con prefijo +569
                       TextFormField(
-                        controller: _phoneController,
+                        controller: _newPhoneController,
                         enabled: !_isSavingPhone,
-                        keyboardType: TextInputType.phone,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          PhoneDigitsFormatter(),
+                        ],
                         decoration: const InputDecoration(
-                          labelText: 'Número de teléfono (opcional)',
-                          hintText: '+56912345678',
+                          labelText: 'Nuevo número de teléfono',
+                          hintText: '12 34 56 78',
                           prefixIcon: Icon(Icons.phone_outlined),
+                          prefixText: '+569 ',
+                          prefixStyle: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryBlue,
+                          ),
                         ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          final digits = v.replaceAll(' ', '');
+                          if (digits.length != 8) {
+                            return 'Ingresa exactamente 8 dígitos.';
+                          }
+                          return null;
+                        },
                       ),
 
                       const SizedBox(height: AppDimensions.spacingMd),
@@ -583,6 +672,48 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// Widget interno: campo de solo lectura con fondo gris
+// ============================================================
+
+class _ReadOnlyField extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final String? helperText;
+
+  const _ReadOnlyField({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.helperText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return TextField(
+      controller: TextEditingController(text: value),
+      readOnly: true,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        filled: true,
+        fillColor: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.05),
+        helperText: helperText,
+        helperMaxLines: 3,
       ),
     );
   }
@@ -613,7 +744,6 @@ class _SectionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Encabezado de sección
             Row(
               children: [
                 Icon(icon, size: 20, color: theme.colorScheme.primary),
