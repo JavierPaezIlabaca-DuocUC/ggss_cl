@@ -51,12 +51,14 @@ class ProfileRepository {
   /// Actualiza la configuración de privacidad del usuario con [userId].
   Future<void> updatePrivacySettings(
     String userId, {
+    required bool showFullName,
     required bool showEmail,
     required bool showPhone,
     required bool showPosts,
   }) {
     return _profileService.updatePrivacySettings(
       userId,
+      showFullName: showFullName,
       showEmail: showEmail,
       showPhone: showPhone,
       showPosts: showPosts,

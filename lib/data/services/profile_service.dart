@@ -109,11 +109,13 @@ class ProfileService {
 
   Future<void> updatePrivacySettings(
     String userId, {
+    required bool showFullName,
     required bool showEmail,
     required bool showPhone,
     required bool showPosts,
   }) async {
     await _client.from(_tableProfiles).update({
+      'show_full_name': showFullName,
       'show_email': showEmail,
       'show_phone': showPhone,
       'show_posts': showPosts,

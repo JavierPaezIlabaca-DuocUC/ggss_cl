@@ -40,6 +40,7 @@ class ProfileModel {
   // Configuración de privacidad (cuentas personales)
   // ----------------------------------------------------------
 
+  final bool showFullName;
   final bool showEmail;
   final bool showPhone;
   final bool showPosts;
@@ -54,6 +55,7 @@ class ProfileModel {
     this.accountType = 'personal',
     this.phone,
     required this.createdAt,
+    this.showFullName = false,
     this.showEmail = false,
     this.showPhone = false,
     this.showPosts = true,
@@ -100,6 +102,7 @@ class ProfileModel {
       phone: map['phone'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
+      showFullName: map['show_full_name'] as bool? ?? false,
       showEmail: map['show_email'] as bool? ?? false,
       showPhone: map['show_phone'] as bool? ?? false,
       showPosts: map['show_posts'] as bool? ?? true,
@@ -116,6 +119,7 @@ class ProfileModel {
     String? lastNameMaternal,
     String? avatarUrl,
     String? phone,
+    bool? showFullName,
     bool? showEmail,
     bool? showPhone,
     bool? showPosts,
@@ -130,6 +134,7 @@ class ProfileModel {
       accountType: accountType,
       phone: phone ?? this.phone,
       createdAt: createdAt,
+      showFullName: showFullName ?? this.showFullName,
       showEmail: showEmail ?? this.showEmail,
       showPhone: showPhone ?? this.showPhone,
       showPosts: showPosts ?? this.showPosts,

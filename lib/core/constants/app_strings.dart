@@ -204,7 +204,7 @@ class AppStrings {
   static const String settingsAppearance = 'Apariencia';
   static const String settingsThemeLight = 'Modo claro';
   static const String settingsThemeDark = 'Modo oscuro';
-  static const String settingsDefaultSection = 'Sección de inicio';
+  static const String settingsDefaultSection = 'Mostrar esta sección al iniciar la app';
   static const String settingsSaved = 'Configuración guardada.';
   static const String settingsAbout = 'Acerca de';
   static const String settingsVersion = 'GGSS.cl v1.0.0';
@@ -282,12 +282,15 @@ class AppStrings {
   // Privacidad
   // ----------------------------------------------------------
   static const String settingsPrivacy = 'Privacidad';
+  static const String settingsPrivacyShowFullName = 'Mostrar mi nombre completo en mi perfil';
   static const String settingsPrivacyShowEmail = 'Mostrar mi correo en mi perfil';
   static const String settingsPrivacyShowPhone = 'Mostrar mi teléfono en mi perfil';
   static const String settingsPrivacyShowPosts = 'Mostrar mis publicaciones en mi perfil';
   static const String settingsPrivacyEmpresaNote =
       'Las cuentas empresa siempre muestran su información públicamente.';
   static const String settingsPrivacySaved = 'Privacidad actualizada.';
+  static const String privacyScreenTitle = 'Privacidad del perfil';
+  static const String privacyProfileButton = 'Privacidad del perfil';
 
   // ----------------------------------------------------------
   // Mis publicaciones (vistas filtradas desde el perfil)

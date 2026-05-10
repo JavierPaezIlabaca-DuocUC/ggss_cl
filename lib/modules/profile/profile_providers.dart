@@ -159,6 +159,7 @@ class ProfileNotifier extends AsyncNotifier<ProfileModel?> {
 
   /// Actualiza los ajustes de privacidad del usuario autenticado.
   Future<void> updatePrivacySettings({
+    required bool showFullName,
     required bool showEmail,
     required bool showPhone,
     required bool showPosts,
@@ -169,6 +170,7 @@ class ProfileNotifier extends AsyncNotifier<ProfileModel?> {
     try {
       await ref.read(profileRepositoryProvider).updatePrivacySettings(
         user.id,
+        showFullName: showFullName,
         showEmail: showEmail,
         showPhone: showPhone,
         showPosts: showPosts,

@@ -21,6 +21,7 @@ import '../auth/login_screen.dart';
 import '../forum/forum_screen.dart';
 import '../jobs/jobs_screen.dart';
 import 'edit_profile_screen.dart';
+import 'privacy_screen.dart';
 import 'profile_providers.dart';
 
 /// Pantalla de perfil del usuario (se muestra sobre el shell)
@@ -188,6 +189,24 @@ class ProfileScreen extends ConsumerWidget {
                     onPressed: () => _navigateToEdit(context, ref, profile),
                   ),
                 ),
+
+              const SizedBox(height: 12),
+
+              // --------------------------------------------------
+              // Botón: privacidad del perfil
+              // --------------------------------------------------
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.lock_outline),
+                  label: const Text(AppStrings.privacyProfileButton),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const PrivacyScreen(),
+                    ),
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 12),
 

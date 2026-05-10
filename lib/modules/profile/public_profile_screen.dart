@@ -85,6 +85,7 @@ class _PublicProfileBody extends ConsumerWidget {
     final statsAsync = ref.watch(publicProfileStatsProvider(userId));
 
     // Las cuentas empresa siempre muestran toda la información
+    final mostrarApellidos = profile.isEmpresa || profile.showFullName;
     final mostrarTelefono =
         profile.isEmpresa || (profile.showPhone && profile.phone != null);
     final mostrarPublicaciones = profile.isEmpresa || profile.showPosts;
@@ -102,12 +103,11 @@ class _PublicProfileBody extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // --------------------------------------------------
-          // Primer nombre (nombre de visualización pública)
+          // Nombre público: siempre primer nombre;
+          // apellidos solo si show_full_name = true o cuenta empresa
           // --------------------------------------------------
           Text(
-            profile.firstName.isNotEmpty
-                ? profile.firstName
-                : AppStrings.publicProfileNoAlias,
+            _buildDisplayName(profile, mostrarApellidos),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -214,6 +214,24 @@ class _PublicProfileBody extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Nombre a mostrar: primer nombre siempre + apellidos si permitido
+  String _buildDisplayName(ProfileModel profile, bool mostrarApellidos) {
+    final fn = profile.firstName.isNotEmpty
+        ? profile.firstName
+        : AppStrings.publicProfileNoAlias;
+    if (!mostrarApellidos) return fn;
+    final parts = [
+      fn,
+      if (profile.lastNamePaternal != null &&
+          profile.lastNamePaternal!.isNotEmpty)
+        profile.lastNamePaternal!,
+      if (profile.lastNameMaternal != null &&
+          profile.lastNameMaternal!.isNotEmpty)
+        profile.lastNameMaternal!,
+    ];
+    return parts.join(' ');
   }
 
   /// Formatea la fecha en español: "enero de 2024"
