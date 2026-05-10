@@ -99,6 +99,7 @@ class AuthRepository {
           rut,
           accountType: accountType,
           phone: phone,
+          email: email,
           firstName: firstName,
           lastNamePaternal: lastNamePaternal,
           lastNameMaternal: lastNameMaternal,

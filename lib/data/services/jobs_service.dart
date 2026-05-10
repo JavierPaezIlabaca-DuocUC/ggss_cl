@@ -18,7 +18,7 @@ class JobsService {
   Future<List<Map<String, dynamic>>> fetchAllJobs() async {
     final response = await _client
         .from(_tableJobOffers)
-        .select('*, profiles!created_by(full_name, alias)')
+        .select('*, profiles!created_by(full_name, first_name, last_name_paternal, last_name_maternal, show_full_name_in_posts)')
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
   }
@@ -28,7 +28,7 @@ class JobsService {
   Future<List<Map<String, dynamic>>> fetchJobsByUser(String userId) async {
     final response = await _client
         .from(_tableJobOffers)
-        .select('*, profiles!created_by(full_name, alias)')
+        .select('*, profiles!created_by(full_name, first_name, last_name_paternal, last_name_maternal, show_full_name_in_posts)')
         .eq('created_by', userId)
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
@@ -39,7 +39,7 @@ class JobsService {
   Future<Map<String, dynamic>?> fetchJobById(String id) async {
     final response = await _client
         .from(_tableJobOffers)
-        .select('*, profiles!created_by(full_name, alias)')
+        .select('*, profiles!created_by(full_name, first_name, last_name_paternal, last_name_maternal, show_full_name_in_posts)')
         .eq('id', id)
         .maybeSingle();
     return response;

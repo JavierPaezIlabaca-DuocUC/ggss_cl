@@ -86,6 +86,8 @@ class _PublicProfileBody extends ConsumerWidget {
 
     // Las cuentas empresa siempre muestran toda la información
     final mostrarApellidos = profile.isEmpresa || profile.showFullName;
+    final mostrarEmail =
+        (profile.isEmpresa || profile.showEmail) && profile.email != null;
     final mostrarTelefono =
         profile.isEmpresa || (profile.showPhone && profile.phone != null);
     final mostrarPublicaciones = profile.isEmpresa || profile.showPosts;
@@ -136,6 +138,32 @@ class _PublicProfileBody extends ConsumerWidget {
                       ?.withValues(alpha: 0.7),
                 ),
           ),
+
+          // --------------------------------------------------
+          // Correo electrónico (si privacidad lo permite)
+          // --------------------------------------------------
+          if (mostrarEmail) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.email_outlined,
+                  size: 16,
+                  color: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.color
+                      ?.withValues(alpha: 0.7),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  profile.email!,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ],
 
           // --------------------------------------------------
           // Teléfono (si privacidad lo permite)

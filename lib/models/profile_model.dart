@@ -33,6 +33,9 @@ class ProfileModel {
   /// Teléfono de contacto con prefijo +569 (ej: +56912345678)
   final String? phone;
 
+  /// Correo electrónico (copia de auth.users.email para mostrar en perfil público)
+  final String? email;
+
   /// Fecha de creación del perfil
   final DateTime createdAt;
 
@@ -44,6 +47,7 @@ class ProfileModel {
   final bool showEmail;
   final bool showPhone;
   final bool showPosts;
+  final bool showFullNameInPosts;
 
   const ProfileModel({
     required this.id,
@@ -54,11 +58,13 @@ class ProfileModel {
     this.avatarUrl,
     this.accountType = 'personal',
     this.phone,
+    this.email,
     required this.createdAt,
     this.showFullName = false,
     this.showEmail = false,
     this.showPhone = false,
     this.showPosts = true,
+    this.showFullNameInPosts = false,
   });
 
   // ----------------------------------------------------------
@@ -100,12 +106,14 @@ class ProfileModel {
       avatarUrl: map['avatar_url'] as String?,
       accountType: map['account_type'] as String? ?? 'personal',
       phone: map['phone'] as String?,
+      email: map['email'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
       showFullName: map['show_full_name'] as bool? ?? false,
       showEmail: map['show_email'] as bool? ?? false,
       showPhone: map['show_phone'] as bool? ?? false,
       showPosts: map['show_posts'] as bool? ?? true,
+      showFullNameInPosts: map['show_full_name_in_posts'] as bool? ?? false,
     );
   }
 
@@ -119,10 +127,12 @@ class ProfileModel {
     String? lastNameMaternal,
     String? avatarUrl,
     String? phone,
+    String? email,
     bool? showFullName,
     bool? showEmail,
     bool? showPhone,
     bool? showPosts,
+    bool? showFullNameInPosts,
   }) {
     return ProfileModel(
       id: id,
@@ -133,11 +143,13 @@ class ProfileModel {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       accountType: accountType,
       phone: phone ?? this.phone,
+      email: email ?? this.email,
       createdAt: createdAt,
       showFullName: showFullName ?? this.showFullName,
       showEmail: showEmail ?? this.showEmail,
       showPhone: showPhone ?? this.showPhone,
       showPosts: showPosts ?? this.showPosts,
+      showFullNameInPosts: showFullNameInPosts ?? this.showFullNameInPosts,
     );
   }
 

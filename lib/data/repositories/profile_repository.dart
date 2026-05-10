@@ -55,6 +55,7 @@ class ProfileRepository {
     required bool showEmail,
     required bool showPhone,
     required bool showPosts,
+    required bool showFullNameInPosts,
   }) {
     return _profileService.updatePrivacySettings(
       userId,
@@ -62,6 +63,7 @@ class ProfileRepository {
       showEmail: showEmail,
       showPhone: showPhone,
       showPosts: showPosts,
+      showFullNameInPosts: showFullNameInPosts,
     );
   }
 

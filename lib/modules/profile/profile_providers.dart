@@ -163,6 +163,7 @@ class ProfileNotifier extends AsyncNotifier<ProfileModel?> {
     required bool showEmail,
     required bool showPhone,
     required bool showPosts,
+    required bool showFullNameInPosts,
   }) async {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
@@ -174,6 +175,7 @@ class ProfileNotifier extends AsyncNotifier<ProfileModel?> {
         showEmail: showEmail,
         showPhone: showPhone,
         showPosts: showPosts,
+        showFullNameInPosts: showFullNameInPosts,
       );
       await refresh();
     } catch (_) {

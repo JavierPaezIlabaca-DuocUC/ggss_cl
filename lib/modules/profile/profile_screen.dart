@@ -123,6 +123,37 @@ class ProfileScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
 
+              const SizedBox(height: 4),
+
+              // --------------------------------------------------
+              // Teléfono (siempre visible en perfil propio)
+              // --------------------------------------------------
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.phone_outlined,
+                    size: 14,
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.color
+                        ?.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatPhone(profile?.phone),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.color
+                              ?.withValues(alpha: 0.75),
+                        ),
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 28),
 
               const Divider(),
@@ -235,6 +266,21 @@ class ProfileScreen extends ConsumerWidget {
   // ----------------------------------------------------------
   // Navegación a pantalla de edición
   // ----------------------------------------------------------
+
+  // ----------------------------------------------------------
+  // Formatea +56912345678 → "+569 12 34 56 78"
+  // ----------------------------------------------------------
+
+  String _formatPhone(String? phone) {
+    if (phone == null || phone.isEmpty) return 'No registrado';
+    if (!phone.startsWith('+569') || phone.length < 12) return phone;
+    final digits = phone.substring(4); // 8 dígitos
+    final spaced = digits.replaceAllMapped(
+      RegExp(r'(.{2})'),
+      (m) => '${m[1]} ',
+    ).trim();
+    return '+569 $spaced';
+  }
 
   void _navigateToEdit(
     BuildContext context,

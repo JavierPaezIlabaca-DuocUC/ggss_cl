@@ -37,6 +37,7 @@ class ProfileService {
     String rut, {
     String accountType = 'personal',
     String? phone,
+    String? email,
     // DEPRECATED: alias - kept for potential future use
     // String? alias,
     String? firstName,
@@ -50,6 +51,7 @@ class ProfileService {
         'rut': rut.trim(),
         'account_type': accountType,
         if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
+        if (email != null && email.isNotEmpty) 'email': email.trim(),
         if (firstName != null && firstName.isNotEmpty)
           'first_name': firstName.trim(),
         if (lastNamePaternal != null && lastNamePaternal.isNotEmpty)
@@ -113,12 +115,14 @@ class ProfileService {
     required bool showEmail,
     required bool showPhone,
     required bool showPosts,
+    required bool showFullNameInPosts,
   }) async {
     await _client.from(_tableProfiles).update({
       'show_full_name': showFullName,
       'show_email': showEmail,
       'show_phone': showPhone,
       'show_posts': showPosts,
+      'show_full_name_in_posts': showFullNameInPosts,
     }).eq('id', userId);
   }
 

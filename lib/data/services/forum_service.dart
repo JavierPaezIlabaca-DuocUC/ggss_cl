@@ -63,7 +63,7 @@ class ForumService {
     final profiles = List<Map<String, dynamic>>.from(
       await _client
           .from('profiles')
-          .select('id, full_name, alias')
+          .select('id, full_name, first_name, last_name_paternal, last_name_maternal, show_full_name_in_posts')
           .inFilter('id', userIds),
     );
     final profileMap = {for (final p in profiles) p['id'] as String: p};
@@ -117,7 +117,7 @@ class ForumService {
     final profiles = List<Map<String, dynamic>>.from(
       await _client
           .from('profiles')
-          .select('id, full_name, alias')
+          .select('id, full_name, first_name, last_name_paternal, last_name_maternal, show_full_name_in_posts')
           .inFilter('id', userIds),
     );
     final profileMap = {for (final p in profiles) p['id'] as String: p};

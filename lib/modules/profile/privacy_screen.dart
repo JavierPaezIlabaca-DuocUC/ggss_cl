@@ -95,12 +95,14 @@ class _PersonalToggles extends StatelessWidget {
     required bool showEmail,
     required bool showPhone,
     required bool showPosts,
+    required bool showFullNameInPosts,
   }) {
     ref.read(profileNotifierProvider.notifier).updatePrivacySettings(
           showFullName: showFullName,
           showEmail: showEmail,
           showPhone: showPhone,
           showPosts: showPosts,
+          showFullNameInPosts: showFullNameInPosts,
         );
   }
 
@@ -135,6 +137,7 @@ class _PersonalToggles extends StatelessWidget {
                   showEmail: profile.showEmail as bool,
                   showPhone: profile.showPhone as bool,
                   showPosts: profile.showPosts as bool,
+                  showFullNameInPosts: profile.showFullNameInPosts as bool,
                 ),
                 title: const Text(AppStrings.settingsPrivacyShowFullName),
                 subtitle: const Text(
@@ -155,6 +158,7 @@ class _PersonalToggles extends StatelessWidget {
                   showEmail: value,
                   showPhone: profile.showPhone as bool,
                   showPosts: profile.showPosts as bool,
+                  showFullNameInPosts: profile.showFullNameInPosts as bool,
                 ),
                 title: const Text(AppStrings.settingsPrivacyShowEmail),
                 secondary: const Icon(Icons.email_outlined),
@@ -171,6 +175,7 @@ class _PersonalToggles extends StatelessWidget {
                   showEmail: profile.showEmail as bool,
                   showPhone: value,
                   showPosts: profile.showPosts as bool,
+                  showFullNameInPosts: profile.showFullNameInPosts as bool,
                 ),
                 title: const Text(AppStrings.settingsPrivacyShowPhone),
                 secondary: const Icon(Icons.phone_outlined),
@@ -187,9 +192,31 @@ class _PersonalToggles extends StatelessWidget {
                   showEmail: profile.showEmail as bool,
                   showPhone: profile.showPhone as bool,
                   showPosts: value,
+                  showFullNameInPosts: profile.showFullNameInPosts as bool,
                 ),
                 title: const Text(AppStrings.settingsPrivacyShowPosts),
                 secondary: const Icon(Icons.article_outlined),
+                dense: true,
+              ),
+
+              const Divider(height: 1, indent: 16, endIndent: 16),
+
+              // Toggle: mostrar nombre completo en publicaciones
+              SwitchListTile(
+                value: profile.showFullNameInPosts as bool,
+                onChanged: (value) => _update(
+                  showFullName: profile.showFullName as bool,
+                  showEmail: profile.showEmail as bool,
+                  showPhone: profile.showPhone as bool,
+                  showPosts: profile.showPosts as bool,
+                  showFullNameInPosts: value,
+                ),
+                title: const Text(AppStrings.settingsPrivacyShowFullNameInPosts),
+                subtitle: const Text(
+                  'Por defecto solo se muestra tu primer nombre.',
+                  style: TextStyle(fontSize: 12),
+                ),
+                secondary: const Icon(Icons.person_outlined),
                 dense: true,
               ),
             ],

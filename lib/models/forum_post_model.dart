@@ -66,8 +66,7 @@ class ForumPostModel {
       category: map['category'] as String?,
       userId: map['created_by'] as String? ?? '',
       authorName: profiles?['full_name'] as String?,
-      authorFirstName: profiles?['first_name'] as String? ??
-          (profiles?['full_name'] as String?)?.split(' ').first,
+      authorFirstName: _buildAuthorName(profiles),
       authorAvatarUrl: profiles?['avatar_url'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
@@ -83,4 +82,20 @@ class ForumPostModel {
       'created_by': userId,
     };
   }
+}
+
+String? _buildAuthorName(Map<String, dynamic>? profiles) {
+  if (profiles == null) return null;
+  final showFull = profiles['show_full_name_in_posts'] as bool? ?? false;
+  final fn = profiles['first_name'] as String? ??
+      (profiles['full_name'] as String?)?.split(' ').first;
+  if (!showFull || fn == null) return fn;
+  final parts = [
+    fn,
+    if ((profiles['last_name_paternal'] as String?)?.isNotEmpty == true)
+      profiles['last_name_paternal'] as String,
+    if ((profiles['last_name_maternal'] as String?)?.isNotEmpty == true)
+      profiles['last_name_maternal'] as String,
+  ];
+  return parts.join(' ');
 }

@@ -283,6 +283,8 @@ class AppStrings {
   // ----------------------------------------------------------
   static const String settingsPrivacy = 'Privacidad';
   static const String settingsPrivacyShowFullName = 'Mostrar mi nombre completo en mi perfil';
+  static const String settingsPrivacyShowFullNameInPosts =
+      'Mostrar mi nombre completo en todas mis publicaciones';
   static const String settingsPrivacyShowEmail = 'Mostrar mi correo en mi perfil';
   static const String settingsPrivacyShowPhone = 'Mostrar mi teléfono en mi perfil';
   static const String settingsPrivacyShowPosts = 'Mostrar mis publicaciones en mi perfil';
