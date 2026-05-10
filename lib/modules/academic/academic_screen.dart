@@ -10,12 +10,16 @@
 //     autenticado. Incluye Scaffold propio con AppBar.
 //   - userId != null: muestra publicaciones de otro usuario específico.
 //     Incluye Scaffold propio con AppBar.
+//
+// RouteAware: al regresar a esta pantalla, refetch los datos para
+// reflejar cambios de privacidad (show_full_name_in_posts).
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_strings.dart';
+import '../../core/utils/route_observer.dart';
 import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -24,7 +28,7 @@ import 'create_academic_screen.dart';
 import 'widgets/academic_card.dart';
 
 /// Pantalla de ofertas académicas — admite vista completa, propia o de otro usuario
-class AcademicScreen extends ConsumerWidget {
+class AcademicScreen extends ConsumerStatefulWidget {
   /// Cuando es true, muestra solo las publicaciones del usuario autenticado
   final bool isOwnPosts;
 
@@ -42,26 +46,64 @@ class AcademicScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AcademicScreen> createState() => _AcademicScreenState();
+}
+
+class _AcademicScreenState extends ConsumerState<AcademicScreen> with RouteAware {
+  // ----------------------------------------------------------
+  // RouteAware: suscribir/desuscribir al observer global
+  // ----------------------------------------------------------
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  /// Llamado cuando el usuario regresa a esta pantalla desde otra ruta.
+  /// Invalida el proveedor para que refetch con las preferencias actualizadas.
+  @override
+  void didPopNext() {
+    if (widget.userId != null) {
+      ref.invalidate(userAcademicNotifierProvider(widget.userId!));
+    } else if (widget.isOwnPosts) {
+      ref.invalidate(myAcademicNotifierProvider);
+    } else {
+      ref.invalidate(academicNotifierProvider);
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Construcción del widget
+  // ----------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
     // Seleccionar el proveedor correcto según el modo
-    final offersAsync = userId != null
-        ? ref.watch(userAcademicNotifierProvider(userId!))
-        : isOwnPosts
+    final offersAsync = widget.userId != null
+        ? ref.watch(userAcademicNotifierProvider(widget.userId!))
+        : widget.isOwnPosts
             ? ref.watch(myAcademicNotifierProvider)
             : ref.watch(academicNotifierProvider);
 
-    // ----------------------------------------------------------
-    // Construir el contenido de la lista
-    // ----------------------------------------------------------
     Widget content = offersAsync.when(
       loading: () => const LoadingIndicator(),
 
       error: (error, _) => AppErrorWidget(
         message: AppStrings.errorGeneral,
         onRetry: () {
-          if (userId != null) {
-            ref.read(userAcademicNotifierProvider(userId!).notifier).refresh();
-          } else if (isOwnPosts) {
+          if (widget.userId != null) {
+            ref.read(userAcademicNotifierProvider(widget.userId!).notifier).refresh();
+          } else if (widget.isOwnPosts) {
             ref.read(myAcademicNotifierProvider.notifier).refresh();
           } else {
             ref.read(academicNotifierProvider.notifier).refresh();
@@ -71,11 +113,11 @@ class AcademicScreen extends ConsumerWidget {
 
       data: (offers) => RefreshIndicator(
         onRefresh: () async {
-          if (userId != null) {
+          if (widget.userId != null) {
             await ref
-                .read(userAcademicNotifierProvider(userId!).notifier)
+                .read(userAcademicNotifierProvider(widget.userId!).notifier)
                 .refresh();
-          } else if (isOwnPosts) {
+          } else if (widget.isOwnPosts) {
             await ref.read(myAcademicNotifierProvider.notifier).refresh();
           } else {
             await ref.read(academicNotifierProvider.notifier).refresh();
@@ -83,13 +125,14 @@ class AcademicScreen extends ConsumerWidget {
         },
         child: offers.isEmpty
             ? _EmptyAcademicList(
-                isOwnPosts: isOwnPosts, isUserFilter: userId != null)
+                isOwnPosts: widget.isOwnPosts,
+                isUserFilter: widget.userId != null,
+              )
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: offers.length,
-                itemBuilder: (_, index) =>
-                    AcademicCard(offer: offers[index]),
+                itemBuilder: (_, index) => AcademicCard(offer: offers[index]),
               ),
       ),
     );
@@ -97,9 +140,9 @@ class AcademicScreen extends ConsumerWidget {
     // ----------------------------------------------------------
     // Modo con Scaffold: perfil propio o perfil de otro usuario
     // ----------------------------------------------------------
-    if (isOwnPosts || userId != null) {
-      final title = userId != null
-          ? 'Publicaciones de ${userFirstName ?? 'usuario'}'
+    if (widget.isOwnPosts || widget.userId != null) {
+      final title = widget.userId != null
+          ? 'Publicaciones de ${widget.userFirstName ?? 'usuario'}'
           : AppStrings.myAcademicTitle;
 
       return Scaffold(

@@ -10,12 +10,16 @@
 //     autenticado. Incluye Scaffold propio con AppBar.
 //   - userId != null: muestra publicaciones de otro usuario específico.
 //     Incluye Scaffold propio con AppBar.
+//
+// RouteAware: al regresar a esta pantalla, refetch los datos para
+// reflejar cambios de privacidad (show_full_name_in_posts).
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_strings.dart';
+import '../../core/utils/route_observer.dart';
 import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -24,7 +28,7 @@ import 'jobs_providers.dart';
 import 'widgets/job_card.dart';
 
 /// Pantalla de ofertas laborales — admite vista completa, propia o de otro usuario
-class JobsScreen extends ConsumerWidget {
+class JobsScreen extends ConsumerStatefulWidget {
   /// Cuando es true, muestra solo las publicaciones del usuario autenticado
   final bool isOwnPosts;
 
@@ -42,26 +46,64 @@ class JobsScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<JobsScreen> createState() => _JobsScreenState();
+}
+
+class _JobsScreenState extends ConsumerState<JobsScreen> with RouteAware {
+  // ----------------------------------------------------------
+  // RouteAware: suscribir/desuscribir al observer global
+  // ----------------------------------------------------------
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  /// Llamado cuando el usuario regresa a esta pantalla desde otra ruta.
+  /// Invalida el proveedor para que refetch con las preferencias actualizadas.
+  @override
+  void didPopNext() {
+    if (widget.userId != null) {
+      ref.invalidate(userJobsNotifierProvider(widget.userId!));
+    } else if (widget.isOwnPosts) {
+      ref.invalidate(myJobsNotifierProvider);
+    } else {
+      ref.invalidate(jobsNotifierProvider);
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Construcción del widget
+  // ----------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
     // Seleccionar el proveedor correcto según el modo
-    final jobsAsync = userId != null
-        ? ref.watch(userJobsNotifierProvider(userId!))
-        : isOwnPosts
+    final jobsAsync = widget.userId != null
+        ? ref.watch(userJobsNotifierProvider(widget.userId!))
+        : widget.isOwnPosts
             ? ref.watch(myJobsNotifierProvider)
             : ref.watch(jobsNotifierProvider);
 
-    // ----------------------------------------------------------
-    // Construir el contenido de la lista
-    // ----------------------------------------------------------
     Widget content = jobsAsync.when(
       loading: () => const LoadingIndicator(),
 
       error: (error, _) => AppErrorWidget(
         message: AppStrings.errorGeneral,
         onRetry: () {
-          if (userId != null) {
-            ref.read(userJobsNotifierProvider(userId!).notifier).refresh();
-          } else if (isOwnPosts) {
+          if (widget.userId != null) {
+            ref.read(userJobsNotifierProvider(widget.userId!).notifier).refresh();
+          } else if (widget.isOwnPosts) {
             ref.read(myJobsNotifierProvider.notifier).refresh();
           } else {
             ref.read(jobsNotifierProvider.notifier).refresh();
@@ -71,18 +113,21 @@ class JobsScreen extends ConsumerWidget {
 
       data: (jobs) => RefreshIndicator(
         onRefresh: () async {
-          if (userId != null) {
+          if (widget.userId != null) {
             await ref
-                .read(userJobsNotifierProvider(userId!).notifier)
+                .read(userJobsNotifierProvider(widget.userId!).notifier)
                 .refresh();
-          } else if (isOwnPosts) {
+          } else if (widget.isOwnPosts) {
             await ref.read(myJobsNotifierProvider.notifier).refresh();
           } else {
             await ref.read(jobsNotifierProvider.notifier).refresh();
           }
         },
         child: jobs.isEmpty
-            ? _EmptyJobsList(isOwnPosts: isOwnPosts, isUserFilter: userId != null)
+            ? _EmptyJobsList(
+                isOwnPosts: widget.isOwnPosts,
+                isUserFilter: widget.userId != null,
+              )
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -95,9 +140,9 @@ class JobsScreen extends ConsumerWidget {
     // ----------------------------------------------------------
     // Modo con Scaffold: perfil propio o perfil de otro usuario
     // ----------------------------------------------------------
-    if (isOwnPosts || userId != null) {
-      final title = userId != null
-          ? 'Publicaciones de ${userFirstName ?? 'usuario'}'
+    if (widget.isOwnPosts || widget.userId != null) {
+      final title = widget.userId != null
+          ? 'Publicaciones de ${widget.userFirstName ?? 'usuario'}'
           : AppStrings.myJobsTitle;
 
       return Scaffold(

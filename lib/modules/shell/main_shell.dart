@@ -75,7 +75,9 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   /// Pantallas correspondientes a cada sección.
   /// Se mantienen vivas con IndexedStack para preservar el scroll.
-  static const List<Widget> _sectionScreens = [
+  /// No son const: ConsumerStatefulWidget necesita instancias mutables
+  /// para que RouteAware pueda suscribirse correctamente.
+  final List<Widget> _sectionScreens = const [
     JobsScreen(),
     AcademicScreen(),
     Os10Screen(),

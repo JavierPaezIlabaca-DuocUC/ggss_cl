@@ -11,12 +11,16 @@
 //     autenticado. Incluye Scaffold propio con AppBar.
 //   - userId != null: muestra posts de otro usuario específico.
 //     Incluye Scaffold propio con AppBar.
+//
+// RouteAware: al regresar a esta pantalla, refetch los datos para
+// reflejar cambios de privacidad (show_full_name_in_posts).
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_strings.dart';
+import '../../core/utils/route_observer.dart';
 import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -25,7 +29,7 @@ import 'forum_providers.dart';
 import 'widgets/forum_post_card.dart';
 
 /// Pantalla del foro comunitario — admite vista completa, propia o de otro usuario
-class ForumScreen extends ConsumerWidget {
+class ForumScreen extends ConsumerStatefulWidget {
   /// Cuando es true, muestra solo los posts del usuario autenticado
   final bool isOwnPosts;
 
@@ -43,26 +47,64 @@ class ForumScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ForumScreen> createState() => _ForumScreenState();
+}
+
+class _ForumScreenState extends ConsumerState<ForumScreen> with RouteAware {
+  // ----------------------------------------------------------
+  // RouteAware: suscribir/desuscribir al observer global
+  // ----------------------------------------------------------
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  /// Llamado cuando el usuario regresa a esta pantalla desde otra ruta.
+  /// Invalida el proveedor para que refetch con las preferencias actualizadas.
+  @override
+  void didPopNext() {
+    if (widget.userId != null) {
+      ref.invalidate(userForumPostsNotifierProvider(widget.userId!));
+    } else if (widget.isOwnPosts) {
+      ref.invalidate(myForumPostsNotifierProvider);
+    } else {
+      ref.invalidate(forumPostsNotifierProvider);
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Construcción del widget
+  // ----------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
     // Seleccionar el proveedor correcto según el modo
-    final postsAsync = userId != null
-        ? ref.watch(userForumPostsNotifierProvider(userId!))
-        : isOwnPosts
+    final postsAsync = widget.userId != null
+        ? ref.watch(userForumPostsNotifierProvider(widget.userId!))
+        : widget.isOwnPosts
             ? ref.watch(myForumPostsNotifierProvider)
             : ref.watch(forumPostsNotifierProvider);
 
-    // ----------------------------------------------------------
-    // Construir el contenido de la lista
-    // ----------------------------------------------------------
     Widget content = postsAsync.when(
       loading: () => const LoadingIndicator(),
 
       error: (error, _) => AppErrorWidget(
         message: AppStrings.errorGeneral,
         onRetry: () {
-          if (userId != null) {
-            ref.read(userForumPostsNotifierProvider(userId!).notifier).refresh();
-          } else if (isOwnPosts) {
+          if (widget.userId != null) {
+            ref.read(userForumPostsNotifierProvider(widget.userId!).notifier).refresh();
+          } else if (widget.isOwnPosts) {
             ref.read(myForumPostsNotifierProvider.notifier).refresh();
           } else {
             ref.read(forumPostsNotifierProvider.notifier).refresh();
@@ -72,24 +114,26 @@ class ForumScreen extends ConsumerWidget {
 
       data: (posts) => RefreshIndicator(
         onRefresh: () async {
-          if (userId != null) {
+          if (widget.userId != null) {
             await ref
-                .read(userForumPostsNotifierProvider(userId!).notifier)
+                .read(userForumPostsNotifierProvider(widget.userId!).notifier)
                 .refresh();
-          } else if (isOwnPosts) {
+          } else if (widget.isOwnPosts) {
             await ref.read(myForumPostsNotifierProvider.notifier).refresh();
           } else {
             await ref.read(forumPostsNotifierProvider.notifier).refresh();
           }
         },
         child: posts.isEmpty
-            ? _EmptyForumList(isOwnPosts: isOwnPosts, isUserFilter: userId != null)
+            ? _EmptyForumList(
+                isOwnPosts: widget.isOwnPosts,
+                isUserFilter: widget.userId != null,
+              )
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: posts.length,
-                itemBuilder: (_, index) =>
-                    ForumPostCard(post: posts[index]),
+                itemBuilder: (_, index) => ForumPostCard(post: posts[index]),
               ),
       ),
     );
@@ -97,9 +141,9 @@ class ForumScreen extends ConsumerWidget {
     // ----------------------------------------------------------
     // Modo con Scaffold: perfil propio o perfil de otro usuario
     // ----------------------------------------------------------
-    if (isOwnPosts || userId != null) {
-      final title = userId != null
-          ? 'Publicaciones de ${userFirstName ?? 'usuario'}'
+    if (widget.isOwnPosts || widget.userId != null) {
+      final title = widget.userId != null
+          ? 'Publicaciones de ${widget.userFirstName ?? 'usuario'}'
           : AppStrings.myForumTitle;
 
       return Scaffold(

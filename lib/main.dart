@@ -24,6 +24,7 @@ import 'core/constants/app_colors.dart';
 import 'core/constants/app_strings.dart';
 import 'core/constants/supabase_config.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/route_observer.dart';
 import 'modules/auth/auth_providers.dart';
 import 'modules/auth/email_verification_screen.dart';
 import 'modules/auth/login_screen.dart';
@@ -105,6 +106,7 @@ class GgssApp extends ConsumerWidget {
     return MaterialApp(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [routeObserver],
 
       // Tema claro: fondo blanco, acentos azules
       theme: AppTheme.lightTheme,
