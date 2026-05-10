@@ -109,3 +109,30 @@ final myAcademicNotifierProvider =
     AsyncNotifierProvider<MyAcademicNotifier, List<AcademicOfferModel>>(
   MyAcademicNotifier.new,
 );
+
+// ----------------------------------------------------------
+// FamilyAsyncNotifier: ofertas académicas de cualquier usuario por userId
+// ----------------------------------------------------------
+
+/// Notifier que muestra las ofertas académicas de un usuario específico.
+/// Usado al tocar las estadísticas en el perfil público de otro usuario.
+class UserAcademicNotifier
+    extends FamilyAsyncNotifier<List<AcademicOfferModel>, String> {
+  @override
+  Future<List<AcademicOfferModel>> build(String userId) {
+    return ref.read(academicRepositoryProvider).getAcademicOffersByUser(userId);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(academicRepositoryProvider).getAcademicOffersByUser(arg),
+    );
+  }
+}
+
+/// Proveedor de ofertas académicas filtradas por cualquier [userId]
+final userAcademicNotifierProvider = AsyncNotifierProvider.family<
+    UserAcademicNotifier, List<AcademicOfferModel>, String>(
+  UserAcademicNotifier.new,
+);

@@ -107,3 +107,30 @@ final myJobsNotifierProvider =
     AsyncNotifierProvider<MyJobsNotifier, List<JobModel>>(
   MyJobsNotifier.new,
 );
+
+// ----------------------------------------------------------
+// FamilyAsyncNotifier: ofertas laborales de cualquier usuario por userId
+// ----------------------------------------------------------
+
+/// Notifier que muestra las ofertas laborales de un usuario específico.
+/// Usado al tocar las estadísticas en el perfil público de otro usuario.
+class UserJobsNotifier
+    extends FamilyAsyncNotifier<List<JobModel>, String> {
+  @override
+  Future<List<JobModel>> build(String userId) {
+    return ref.read(jobsRepositoryProvider).getJobsByUser(userId);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(jobsRepositoryProvider).getJobsByUser(arg),
+    );
+  }
+}
+
+/// Proveedor de ofertas laborales filtradas por cualquier [userId]
+final userJobsNotifierProvider =
+    AsyncNotifierProvider.family<UserJobsNotifier, List<JobModel>, String>(
+  UserJobsNotifier.new,
+);

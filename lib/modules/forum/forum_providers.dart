@@ -111,6 +111,33 @@ final myForumPostsNotifierProvider =
 );
 
 // ----------------------------------------------------------
+// FamilyAsyncNotifier: posts del foro de cualquier usuario por userId
+// ----------------------------------------------------------
+
+/// Notifier que muestra los posts del foro de un usuario específico.
+/// Usado al tocar las estadísticas en el perfil público de otro usuario.
+class UserForumPostsNotifier
+    extends FamilyAsyncNotifier<List<ForumPostModel>, String> {
+  @override
+  Future<List<ForumPostModel>> build(String userId) {
+    return ref.read(forumRepositoryProvider).getPostsByUser(userId);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(forumRepositoryProvider).getPostsByUser(arg),
+    );
+  }
+}
+
+/// Proveedor de posts del foro filtrados por cualquier [userId]
+final userForumPostsNotifierProvider = AsyncNotifierProvider.family<
+    UserForumPostsNotifier, List<ForumPostModel>, String>(
+  UserForumPostsNotifier.new,
+);
+
+// ----------------------------------------------------------
 // FamilyAsyncNotifier: gestiona los comentarios de un post
 // ----------------------------------------------------------
 

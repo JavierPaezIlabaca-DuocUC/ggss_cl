@@ -3,7 +3,7 @@
 // Pantalla de configuración de privacidad del perfil.
 // Accesible desde ProfileScreen.
 //
-// Cuenta personal: 4 toggles de visibilidad.
+// Cuenta personal: 5 toggles de visibilidad.
 // Cuenta empresa: mensaje informativo (sin toggles).
 // ============================================================
 
@@ -11,6 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_strings.dart';
+import '../academic/academic_providers.dart';
+import '../forum/forum_providers.dart';
+import '../jobs/jobs_providers.dart';
 import 'profile_providers.dart';
 
 /// Pantalla de privacidad del perfil del usuario autenticado
@@ -39,7 +42,7 @@ class PrivacyScreen extends ConsumerWidget {
             return _EmpresaNote();
           }
 
-          return _PersonalToggles(profile: profile, ref: ref);
+          return _PersonalToggles(profile: profile);
         },
       ),
     );
@@ -81,33 +84,51 @@ class _EmpresaNote extends StatelessWidget {
 }
 
 // ============================================================
-// Cuenta personal: 4 toggles de privacidad
+// Cuenta personal: 5 toggles de privacidad
 // ============================================================
 
-class _PersonalToggles extends StatelessWidget {
+class _PersonalToggles extends ConsumerWidget {
   final dynamic profile;
-  final WidgetRef ref;
 
-  const _PersonalToggles({required this.profile, required this.ref});
+  const _PersonalToggles({required this.profile});
 
-  void _update({
+  Future<void> _update(
+    BuildContext context,
+    WidgetRef ref, {
     required bool showFullName,
     required bool showEmail,
     required bool showPhone,
     required bool showPosts,
     required bool showFullNameInPosts,
-  }) {
-    ref.read(profileNotifierProvider.notifier).updatePrivacySettings(
+    bool invalidatePostProviders = false,
+  }) async {
+    await ref.read(profileNotifierProvider.notifier).updatePrivacySettings(
           showFullName: showFullName,
           showEmail: showEmail,
           showPhone: showPhone,
           showPosts: showPosts,
           showFullNameInPosts: showFullNameInPosts,
         );
+
+    // Invalidar listas de publicaciones cuando cambia el nombre en posts
+    if (invalidatePostProviders) {
+      ref.invalidate(jobsNotifierProvider);
+      ref.invalidate(academicNotifierProvider);
+      ref.invalidate(forumPostsNotifierProvider);
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(AppStrings.settingsPrivacySaved),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       children: [
@@ -133,6 +154,8 @@ class _PersonalToggles extends StatelessWidget {
               SwitchListTile(
                 value: profile.showFullName as bool,
                 onChanged: (value) => _update(
+                  context,
+                  ref,
                   showFullName: value,
                   showEmail: profile.showEmail as bool,
                   showPhone: profile.showPhone as bool,
@@ -154,6 +177,8 @@ class _PersonalToggles extends StatelessWidget {
               SwitchListTile(
                 value: profile.showEmail as bool,
                 onChanged: (value) => _update(
+                  context,
+                  ref,
                   showFullName: profile.showFullName as bool,
                   showEmail: value,
                   showPhone: profile.showPhone as bool,
@@ -171,6 +196,8 @@ class _PersonalToggles extends StatelessWidget {
               SwitchListTile(
                 value: profile.showPhone as bool,
                 onChanged: (value) => _update(
+                  context,
+                  ref,
                   showFullName: profile.showFullName as bool,
                   showEmail: profile.showEmail as bool,
                   showPhone: value,
@@ -188,6 +215,8 @@ class _PersonalToggles extends StatelessWidget {
               SwitchListTile(
                 value: profile.showPosts as bool,
                 onChanged: (value) => _update(
+                  context,
+                  ref,
                   showFullName: profile.showFullName as bool,
                   showEmail: profile.showEmail as bool,
                   showPhone: profile.showPhone as bool,
@@ -205,11 +234,14 @@ class _PersonalToggles extends StatelessWidget {
               SwitchListTile(
                 value: profile.showFullNameInPosts as bool,
                 onChanged: (value) => _update(
+                  context,
+                  ref,
                   showFullName: profile.showFullName as bool,
                   showEmail: profile.showEmail as bool,
                   showPhone: profile.showPhone as bool,
                   showPosts: profile.showPosts as bool,
                   showFullNameInPosts: value,
+                  invalidatePostProviders: true,
                 ),
                 title: const Text(AppStrings.settingsPrivacyShowFullNameInPosts),
                 subtitle: const Text(

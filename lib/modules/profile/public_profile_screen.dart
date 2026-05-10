@@ -20,6 +20,9 @@ import '../../core/constants/app_strings.dart';
 import '../../models/profile_model.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../shared/widgets/loading_indicator.dart';
+import '../academic/academic_screen.dart';
+import '../forum/forum_screen.dart';
+import '../jobs/jobs_screen.dart';
 import 'profile_providers.dart';
 
 /// Pantalla de perfil público de un usuario
@@ -217,7 +220,33 @@ class _PublicProfileBody extends ConsumerWidget {
                 child: LoadingIndicator(),
               ),
               error: (err, st) => const SizedBox.shrink(),
-              data: (stats) => _StatsRow(stats: stats),
+              data: (stats) => _StatsRow(
+                stats: stats,
+                onTapJobs: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => JobsScreen(
+                      userId: userId,
+                      userFirstName: profile.firstName,
+                    ),
+                  ),
+                ),
+                onTapAcademic: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AcademicScreen(
+                      userId: userId,
+                      userFirstName: profile.firstName,
+                    ),
+                  ),
+                ),
+                onTapForum: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ForumScreen(
+                      userId: userId,
+                      userFirstName: profile.firstName,
+                    ),
+                  ),
+                ),
+              ),
             ),
 
             const SizedBox(height: 16),
@@ -354,13 +383,21 @@ class _AccountTypeBadge extends StatelessWidget {
 }
 
 // ============================================================
-// Widget: fila de estadísticas (solo lectura, sin navegación)
+// Widget: fila de estadísticas (clickeable, navega a la lista)
 // ============================================================
 
 class _StatsRow extends StatelessWidget {
   final ProfileStats stats;
+  final VoidCallback onTapJobs;
+  final VoidCallback onTapAcademic;
+  final VoidCallback onTapForum;
 
-  const _StatsRow({required this.stats});
+  const _StatsRow({
+    required this.stats,
+    required this.onTapJobs,
+    required this.onTapAcademic,
+    required this.onTapForum,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -371,6 +408,7 @@ class _StatsRow extends StatelessWidget {
             count: stats.jobCount,
             label: AppStrings.profileJobsPosted,
             icon: Icons.work_outline,
+            onTap: onTapJobs,
           ),
         ),
         const SizedBox(width: 8),
@@ -379,6 +417,7 @@ class _StatsRow extends StatelessWidget {
             count: stats.academicCount,
             label: AppStrings.profileAcademicPosted,
             icon: Icons.school_outlined,
+            onTap: onTapAcademic,
           ),
         ),
         const SizedBox(width: 8),
@@ -387,6 +426,7 @@ class _StatsRow extends StatelessWidget {
             count: stats.forumCount,
             label: AppStrings.profileForumPosts,
             icon: Icons.chat_bubble_outline,
+            onTap: onTapForum,
           ),
         ),
       ],
@@ -398,37 +438,43 @@ class _StatCard extends StatelessWidget {
   final int count;
   final String label;
   final IconData icon;
+  final VoidCallback onTap;
 
   const _StatCard({
     required this.count,
     required this.label,
     required this.icon,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
-            const SizedBox(height: 6),
-            Text(
-              '$count',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelSmall,
-              textAlign: TextAlign.center,
-            ),
-          ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
+              const SizedBox(height: 6),
+              Text(
+                '$count',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelSmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );

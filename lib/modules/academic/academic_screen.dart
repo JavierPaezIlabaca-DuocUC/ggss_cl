@@ -4,10 +4,11 @@
 // Muestra la lista desde Supabase con pull-to-refresh.
 //
 // Modos de uso:
-//   - isOwnPosts = false (por defecto): embebida en MainShell,
-//     muestra todas las ofertas. Sin Scaffold propio.
-//   - isOwnPosts = true: ruta independiente empujada desde el
-//     perfil del usuario. Muestra solo sus publicaciones.
+//   - Por defecto: embebida en MainShell, muestra todas las ofertas.
+//     Sin Scaffold propio.
+//   - isOwnPosts = true: muestra solo las publicaciones del usuario
+//     autenticado. Incluye Scaffold propio con AppBar.
+//   - userId != null: muestra publicaciones de otro usuario específico.
 //     Incluye Scaffold propio con AppBar.
 // ============================================================
 
@@ -22,42 +23,67 @@ import 'academic_providers.dart';
 import 'create_academic_screen.dart';
 import 'widgets/academic_card.dart';
 
-/// Pantalla de ofertas académicas — admite vista completa o filtrada por usuario
+/// Pantalla de ofertas académicas — admite vista completa, propia o de otro usuario
 class AcademicScreen extends ConsumerWidget {
   /// Cuando es true, muestra solo las publicaciones del usuario autenticado
   final bool isOwnPosts;
 
-  const AcademicScreen({super.key, this.isOwnPosts = false});
+  /// Cuando está presente, muestra publicaciones de este usuario específico
+  final String? userId;
+
+  /// Primer nombre del usuario (para el título del AppBar cuando userId != null)
+  final String? userFirstName;
+
+  const AcademicScreen({
+    super.key,
+    this.isOwnPosts = false,
+    this.userId,
+    this.userFirstName,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Seleccionar el proveedor correcto según el modo
-    final offersAsync = isOwnPosts
-        ? ref.watch(myAcademicNotifierProvider)
-        : ref.watch(academicNotifierProvider);
+    final offersAsync = userId != null
+        ? ref.watch(userAcademicNotifierProvider(userId!))
+        : isOwnPosts
+            ? ref.watch(myAcademicNotifierProvider)
+            : ref.watch(academicNotifierProvider);
 
     // ----------------------------------------------------------
     // Construir el contenido de la lista
     // ----------------------------------------------------------
     Widget content = offersAsync.when(
-      // Estado de carga
       loading: () => const LoadingIndicator(),
 
-      // Estado de error con reintento
       error: (error, _) => AppErrorWidget(
         message: AppStrings.errorGeneral,
-        onRetry: () => isOwnPosts
-            ? ref.read(myAcademicNotifierProvider.notifier).refresh()
-            : ref.read(academicNotifierProvider.notifier).refresh(),
+        onRetry: () {
+          if (userId != null) {
+            ref.read(userAcademicNotifierProvider(userId!).notifier).refresh();
+          } else if (isOwnPosts) {
+            ref.read(myAcademicNotifierProvider.notifier).refresh();
+          } else {
+            ref.read(academicNotifierProvider.notifier).refresh();
+          }
+        },
       ),
 
-      // Datos cargados: lista o estado vacío
       data: (offers) => RefreshIndicator(
-        onRefresh: () => isOwnPosts
-            ? ref.read(myAcademicNotifierProvider.notifier).refresh()
-            : ref.read(academicNotifierProvider.notifier).refresh(),
+        onRefresh: () async {
+          if (userId != null) {
+            await ref
+                .read(userAcademicNotifierProvider(userId!).notifier)
+                .refresh();
+          } else if (isOwnPosts) {
+            await ref.read(myAcademicNotifierProvider.notifier).refresh();
+          } else {
+            await ref.read(academicNotifierProvider.notifier).refresh();
+          }
+        },
         child: offers.isEmpty
-            ? _EmptyAcademicList(isOwnPosts: isOwnPosts)
+            ? _EmptyAcademicList(
+                isOwnPosts: isOwnPosts, isUserFilter: userId != null)
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -69,12 +95,16 @@ class AcademicScreen extends ConsumerWidget {
     );
 
     // ----------------------------------------------------------
-    // Modo "mis publicaciones": envolver en Scaffold con AppBar
+    // Modo con Scaffold: perfil propio o perfil de otro usuario
     // ----------------------------------------------------------
-    if (isOwnPosts) {
+    if (isOwnPosts || userId != null) {
+      final title = userId != null
+          ? 'Publicaciones de ${userFirstName ?? 'usuario'}'
+          : AppStrings.myAcademicTitle;
+
       return Scaffold(
         appBar: AppBar(
-          title: const Text(AppStrings.myAcademicTitle),
+          title: Text(title),
           centerTitle: true,
         ),
         body: content,
@@ -92,8 +122,12 @@ class AcademicScreen extends ConsumerWidget {
 
 class _EmptyAcademicList extends StatelessWidget {
   final bool isOwnPosts;
+  final bool isUserFilter;
 
-  const _EmptyAcademicList({this.isOwnPosts = false});
+  const _EmptyAcademicList({
+    this.isOwnPosts = false,
+    this.isUserFilter = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -104,10 +138,14 @@ class _EmptyAcademicList extends StatelessWidget {
         EmptyStateWidget(
           message: isOwnPosts
               ? 'Aún no has publicado ofertas académicas.'
-              : AppStrings.academicNoOffers,
+              : isUserFilter
+                  ? 'Este usuario no tiene ofertas académicas.'
+                  : AppStrings.academicNoOffers,
           icon: Icons.school_outlined,
-          actionLabel: isOwnPosts ? null : 'Crear primera publicación',
-          onActionTap: isOwnPosts
+          actionLabel: isOwnPosts || isUserFilter
+              ? null
+              : 'Crear primera publicación',
+          onActionTap: isOwnPosts || isUserFilter
               ? null
               : () => Navigator.of(context).push(
                     MaterialPageRoute(
