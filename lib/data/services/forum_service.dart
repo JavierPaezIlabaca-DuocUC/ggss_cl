@@ -4,6 +4,7 @@
 // contra las tablas 'forum_posts' y 'forum_comments' en Supabase.
 // ============================================================
 
+import '../../core/utils/post_name_preference.dart';
 import '../supabase/supabase_client.dart';
 
 /// Nombres de tablas del foro en Supabase
@@ -45,6 +46,7 @@ class ForumService {
 
   /// Enriquece una lista de posts con los datos de perfil de sus autores.
   /// Evita N consultas haciendo un único select por lote de IDs.
+  /// Aplica la preferencia local para el usuario autenticado.
   Future<List<Map<String, dynamic>>> _fetchPostsWithProfiles(
     dynamic rawPosts,
   ) async {
@@ -59,14 +61,16 @@ class ForumService {
 
     if (userIds.isEmpty) return posts;
 
-    // Obtener perfiles en lote (incluye alias para mostrarlo en el foro)
+    // Obtener perfiles en lote
     final profiles = List<Map<String, dynamic>>.from(
       await _client
           .from('profiles')
           .select('id, full_name, first_name, last_name_paternal, last_name_maternal, show_full_name_in_posts')
           .inFilter('id', userIds),
     );
-    final profileMap = {for (final p in profiles) p['id'] as String: p};
+
+    // Aplicar preferencia local para el usuario autenticado actual
+    final profileMap = await _buildProfileMap(profiles);
 
     // Inyectar datos del autor en cada post
     return posts.map((post) {
@@ -113,14 +117,16 @@ class ForumService {
 
     if (userIds.isEmpty) return comments;
 
-    // Paso 3: obtener perfiles en lote (incluye alias para mostrarlo en comentarios)
+    // Paso 3: obtener perfiles en lote
     final profiles = List<Map<String, dynamic>>.from(
       await _client
           .from('profiles')
           .select('id, full_name, first_name, last_name_paternal, last_name_maternal, show_full_name_in_posts')
           .inFilter('id', userIds),
     );
-    final profileMap = {for (final p in profiles) p['id'] as String: p};
+
+    // Aplicar preferencia local para el usuario autenticado actual
+    final profileMap = await _buildProfileMap(profiles);
 
     // Paso 4: inyectar datos del autor en cada comentario
     return comments.map((comment) {
@@ -137,5 +143,30 @@ class ForumService {
   /// Elimina un comentario del foro (RLS garantiza que solo el autor puede hacerlo)
   Future<void> deleteComment(String id) async {
     await _client.from(_tableForumComments).delete().eq('id', id);
+  }
+
+  // ----------------------------------------------------------
+  // Construye el mapa de perfiles aplicando la preferencia local
+  // para el usuario autenticado actual.
+  // ----------------------------------------------------------
+
+  Future<Map<String, Map<String, dynamic>>> _buildProfileMap(
+    List<Map<String, dynamic>> profiles,
+  ) async {
+    final currentUserId = _client.auth.currentUser?.id;
+    final cachedValue = currentUserId != null
+        ? await PostNamePreference.read()
+        : null;
+
+    final map = <String, Map<String, dynamic>>{};
+    for (final p in profiles) {
+      final id = p['id'] as String;
+      if (cachedValue != null && id == currentUserId) {
+        map[id] = {...p, 'show_full_name_in_posts': cachedValue};
+      } else {
+        map[id] = p;
+      }
+    }
+    return map;
   }
 }

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_strings.dart';
+import '../../core/utils/post_name_preference.dart';
 import '../academic/academic_providers.dart';
 import '../forum/forum_providers.dart';
 import '../jobs/jobs_providers.dart';
@@ -102,6 +103,10 @@ class _PersonalToggles extends ConsumerWidget {
     required bool showFullNameInPosts,
     bool invalidatePostProviders = false,
   }) async {
+    // Capturar messenger ANTES del await para evitar pérdida de contexto
+    // cuando profileNotifierProvider cambie a AsyncValue.loading() durante refresh
+    final messenger = ScaffoldMessenger.of(context);
+
     await ref.read(profileNotifierProvider.notifier).updatePrivacySettings(
           showFullName: showFullName,
           showEmail: showEmail,
@@ -110,21 +115,21 @@ class _PersonalToggles extends ConsumerWidget {
           showFullNameInPosts: showFullNameInPosts,
         );
 
-    // Invalidar listas de publicaciones cuando cambia el nombre en posts
+    // Cuando cambia show_full_name_in_posts: persistir localmente y
+    // marcar las listas como obsoletas para que refresquen en la próxima navegación
     if (invalidatePostProviders) {
+      await PostNamePreference.write(showFullNameInPosts);
       ref.invalidate(jobsNotifierProvider);
       ref.invalidate(academicNotifierProvider);
       ref.invalidate(forumPostsNotifierProvider);
     }
 
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(AppStrings.settingsPrivacySaved),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text(AppStrings.settingsPrivacySaved),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
