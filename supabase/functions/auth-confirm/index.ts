@@ -168,26 +168,49 @@ function errorHtml(reason: string): string {
 }
 
 // ──────────────────────────────────────────
+// Cabeceras comunes para todas las respuestas
+// Access-Control-Allow-Origin: * es obligatorio para que navegadores
+// puedan acceder a la función sin autenticación (función pública).
+// ──────────────────────────────────────────
+const HTML_HEADERS = {
+  'Content-Type': 'text/html; charset=utf-8',
+  'Access-Control-Allow-Origin': '*',
+}
+
+// ──────────────────────────────────────────
 // Handler principal
 // ──────────────────────────────────────────
 Deno.serve(async (req: Request) => {
+  // Responder a preflight CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+      },
+    })
+  }
+
   const url = new URL(req.url)
   const tokenHash = url.searchParams.get('token_hash')
   const type = url.searchParams.get('type') as 'signup' | 'recovery' | null
 
-  // Parámetros requeridos
+  // Sin parámetros: acceso directo desde navegador (ej. test manual).
+  // Devolver HTML informativo en lugar de error técnico.
   if (!tokenHash || !type) {
-    return new Response(errorHtml('Parámetros inválidos'), {
-      status: 400,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    })
+    return new Response(
+      errorHtml('No se encontró token de verificación en la URL. Abre la app y solicita un nuevo correo de verificación.'),
+      { status: 200, headers: HTML_HEADERS },
+    )
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  // Verificar el token con Supabase Auth
+  // Verificar el token con Supabase Auth (service role, sin JWT de usuario)
   const { data, error } = await supabase.auth.verifyOtp({
     token_hash: tokenHash,
     type,
@@ -196,14 +219,14 @@ Deno.serve(async (req: Request) => {
   if (error || !data.user) {
     console.error('Token verification failed:', error?.message)
     return new Response(errorHtml(error?.message ?? 'unknown'), {
-      status: 200, // 200 para que el navegador muestre el HTML
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      status: 200,
+      headers: HTML_HEADERS,
     })
   }
 
   const email = data.user.email ?? ''
   return new Response(successHtml(email), {
     status: 200,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: HTML_HEADERS,
   })
 })
