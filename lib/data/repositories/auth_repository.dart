@@ -99,6 +99,15 @@ class AuthRepository {
           lastNamePaternal: lastNamePaternal,
           lastNameMaternal: lastNameMaternal,
         );
+      } on PostgrestException catch (e) {
+        // Violación de restricción UNIQUE en la columna phone
+        if (e.code == '23505' &&
+            (e.message.contains('phone') ||
+                e.message.contains('profiles_phone'))) {
+          throw const PhoneAlreadyExistsException();
+        }
+        // Otros errores de PostgREST: fallo silencioso, el perfil
+        // se creará en la primera visita al módulo de perfil
       } catch (_) {
         // Fallo silencioso — el perfil se creará en la primera visita al módulo
       }

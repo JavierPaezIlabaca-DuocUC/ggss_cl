@@ -61,6 +61,15 @@ Future<void> main() async {
     ),
   );
 
+  // Refrescar sesión para obtener emailConfirmedAt actualizado desde Supabase.
+  // Sin esto, un usuario que confirmó su correo en el navegador y vuelve
+  // a la app podría ver el valor obsoleto emailConfirmedAt == null.
+  try {
+    await Supabase.instance.client.auth.refreshSession();
+  } catch (_) {
+    // Sin sesión activa — ignorar
+  }
+
   // Si el usuario no eligió "Recordar sesión", cerrar la sesión activa
   // para que deba autenticarse nuevamente al abrir la app.
   final rememberSession = prefs.getBool('remember_session') ?? true;

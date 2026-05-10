@@ -29,8 +29,8 @@ import '../../shared/formatters/phone_digits_formatter.dart';
 import '../../shared/widgets/password_requirements_box.dart';
 import '../../shared/widgets/password_text_field.dart';
 import '../settings/terms_screen.dart';
-import '../shell/main_shell.dart';
 import 'auth_providers.dart';
+import 'email_verification_screen.dart';
 import 'forgot_password_screen.dart';
 
 /// Pantalla de registro de nueva cuenta de GGSS.cl
@@ -143,9 +143,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     // Escuchar el resultado del registro
     ref.listen<AuthFormState>(authNotifierProvider, (_, next) {
       if (next.isSuccess) {
-        // Registro exitoso: navegar al shell principal, limpiar pila
+        // Registro exitoso: navegar a verificación de correo, limpiar pila.
+        // El correo aún no está confirmado (emailConfirmedAt == null),
+        // por lo que la app no debe mostrar MainShell todavía.
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainShell()),
+          MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
           (route) => false,
         );
       }
@@ -449,6 +451,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           message: authState.errorMessage!,
                           email: _emailController.text,
                         )
+                      else if (authState.errorCode ==
+                          AuthErrorCode.phoneAlreadyExists)
+                        _AuthErrorBanner(message: authState.errorMessage!)
                       else
                         _AuthErrorBanner(message: authState.errorMessage!),
                       const SizedBox(height: AppDimensions.spacingMd),

@@ -32,6 +32,9 @@ enum AuthErrorCode {
 
   /// El RUT ya existe en la tabla profiles
   rutAlreadyExists,
+
+  /// El teléfono ya existe en la tabla profiles
+  phoneAlreadyExists,
 }
 
 // ----------------------------------------------------------
@@ -176,6 +179,13 @@ class AuthNotifier extends StateNotifier<AuthFormState> {
         status: AuthFormStatus.error,
         errorMessage: 'Este RUT ya está registrado en GGSS.cl.',
         errorCode: AuthErrorCode.rutAlreadyExists,
+      );
+    } on PhoneAlreadyExistsException {
+      state = const AuthFormState(
+        status: AuthFormStatus.error,
+        errorMessage:
+            'Este número de teléfono ya está registrado en otra cuenta.',
+        errorCode: AuthErrorCode.phoneAlreadyExists,
       );
     } on AuthException catch (e) {
       final msg = e.message.toLowerCase();

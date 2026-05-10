@@ -321,6 +321,10 @@ class ProfileScreen extends ConsumerWidget {
               Navigator.of(ctx).pop();
               // Ejecutar cierre de sesión y esperar a que complete
               await ref.read(authNotifierProvider.notifier).signOut();
+              // Limpiar caché de perfil para evitar que datos de esta
+              // cuenta se muestren si otra cuenta inicia sesión después
+              ref.invalidate(profileNotifierProvider);
+              ref.invalidate(profileStatsProvider);
               // Limpiar toda la pila de navegación y redirigir al login
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(

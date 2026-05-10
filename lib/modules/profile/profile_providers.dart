@@ -35,7 +35,10 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 class ProfileNotifier extends AsyncNotifier<ProfileModel?> {
   @override
   Future<ProfileModel?> build() async {
-    final user = ref.read(currentUserProvider);
+    // ref.watch en lugar de ref.read: el notifier se reconstruye automáticamente
+    // cuando cambia el usuario (login/logout), evitando que datos de una cuenta
+    // queden cacheados y se muestren en otra sesión.
+    final user = ref.watch(currentUserProvider);
     if (user == null) return null;
 
     final repo = ref.read(profileRepositoryProvider);

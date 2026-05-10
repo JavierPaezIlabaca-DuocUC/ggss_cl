@@ -7,3 +7,8 @@
 class RutAlreadyExistsException implements Exception {
   const RutAlreadyExistsException();
 }
+
+/// El teléfono ingresado ya existe en la tabla profiles.
+class PhoneAlreadyExistsException implements Exception {
+  const PhoneAlreadyExistsException();
+}
