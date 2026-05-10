@@ -12,6 +12,7 @@
 // ============================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/profile_repository.dart';
 import '../../models/profile_model.dart';
@@ -79,6 +80,77 @@ class ProfileNotifier extends AsyncNotifier<ProfileModel?> {
     } catch (_) {
       return false;
     }
+  }
+
+  // ----------------------------------------------------------
+  // Actualiza los campos de nombre (firstName, paternal, maternal)
+  // ----------------------------------------------------------
+
+  /// Actualiza el primer nombre y apellidos del usuario actual.
+  /// Retorna true si fue exitoso.
+  Future<bool> updateNameFields({
+    required String firstName,
+    String? lastNamePaternal,
+    String? lastNameMaternal,
+  }) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return false;
+
+    try {
+      await ref.read(profileRepositoryProvider).updateNameFields(
+        user.id,
+        firstName: firstName,
+        lastNamePaternal: lastNamePaternal,
+        lastNameMaternal: lastNameMaternal,
+      );
+      await refresh();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Actualiza el teléfono del usuario
+  // ----------------------------------------------------------
+
+  /// Actualiza el teléfono del usuario actual. Retorna true si fue exitoso.
+  Future<bool> updatePhone(String? phone) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return false;
+
+    try {
+      await ref.read(profileRepositoryProvider).updatePhone(user.id, phone);
+      await refresh();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Actualiza la contraseña vía Supabase Auth
+  // ----------------------------------------------------------
+
+  /// Actualiza la contraseña del usuario autenticado.
+  /// Lanza una excepción descriptiva en caso de error.
+  Future<void> updatePassword(String newPassword) async {
+    await Supabase.instance.client.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+  }
+
+  // ----------------------------------------------------------
+  // Actualiza el correo vía Supabase Auth
+  // ----------------------------------------------------------
+
+  /// Solicita el cambio de correo del usuario autenticado.
+  /// Supabase enviará un enlace de confirmación al nuevo correo.
+  /// Lanza una excepción descriptiva en caso de error.
+  Future<void> updateEmail(String newEmail) async {
+    await Supabase.instance.client.auth.updateUser(
+      UserAttributes(email: newEmail),
+    );
   }
 
   // ----------------------------------------------------------

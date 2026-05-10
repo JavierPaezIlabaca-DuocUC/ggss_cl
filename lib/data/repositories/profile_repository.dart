@@ -28,6 +28,26 @@ class ProfileRepository {
     return _profileService.updateProfile(userId, fullName);
   }
 
+  /// Actualiza los campos de nombre separados del usuario con [userId].
+  Future<void> updateNameFields(
+    String userId, {
+    required String firstName,
+    String? lastNamePaternal,
+    String? lastNameMaternal,
+  }) {
+    return _profileService.updateNameFields(
+      userId,
+      firstName: firstName,
+      lastNamePaternal: lastNamePaternal,
+      lastNameMaternal: lastNameMaternal,
+    );
+  }
+
+  /// Actualiza el teléfono del usuario con [userId].
+  Future<void> updatePhone(String userId, String? phone) {
+    return _profileService.updatePhone(userId, phone);
+  }
+
   /// Actualiza la configuración de privacidad del usuario con [userId].
   Future<void> updatePrivacySettings(
     String userId, {

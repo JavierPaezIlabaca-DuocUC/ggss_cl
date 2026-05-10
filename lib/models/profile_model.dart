@@ -1,8 +1,7 @@
 // ============================================================
 // profile_model.dart
 // Modelo del perfil de usuario de GGSS.cl.
-// Representa los datos de la tabla 'profiles' en Supabase,
-// complementando la información de autenticación de Supabase Auth.
+// Representa los datos de la tabla 'profiles' en Supabase.
 // ============================================================
 
 /// Modelo de perfil de usuario guardado en la tabla 'profiles'
@@ -10,8 +9,17 @@ class ProfileModel {
   /// UUID del usuario (referencia a auth.users.id)
   final String id;
 
-  /// Nombre completo del usuario
-  final String fullName;
+  /// Primer nombre del usuario (requerido para nuevas cuentas)
+  final String firstName;
+
+  /// Apellido paterno (requerido para nuevas cuentas)
+  final String? lastNamePaternal;
+
+  /// Apellido materno (opcional)
+  final String? lastNameMaternal;
+
+  // DEPRECATED: alias system - kept for potential future use
+  // final String? alias;
 
   /// RUT chileno del usuario (solo lectura después del registro)
   final String rut;
@@ -25,9 +33,6 @@ class ProfileModel {
   /// Teléfono de contacto con prefijo +569 (ej: +56912345678)
   final String? phone;
 
-  /// Alias público mostrado en foro y publicaciones (opcional)
-  final String? alias;
-
   /// Fecha de creación del perfil
   final DateTime createdAt;
 
@@ -35,23 +40,19 @@ class ProfileModel {
   // Configuración de privacidad (cuentas personales)
   // ----------------------------------------------------------
 
-  /// Mostrar correo en perfil público (solo aplica a cuentas personales)
   final bool showEmail;
-
-  /// Mostrar teléfono en perfil público (solo aplica a cuentas personales)
   final bool showPhone;
-
-  /// Mostrar estadísticas de publicaciones en perfil público
   final bool showPosts;
 
   const ProfileModel({
     required this.id,
-    required this.fullName,
+    required this.firstName,
+    this.lastNamePaternal,
+    this.lastNameMaternal,
     required this.rut,
     this.avatarUrl,
     this.accountType = 'personal',
     this.phone,
-    this.alias,
     required this.createdAt,
     this.showEmail = false,
     this.showPhone = false,
@@ -59,18 +60,44 @@ class ProfileModel {
   });
 
   // ----------------------------------------------------------
+  // Nombre completo computado desde las partes
+  // ----------------------------------------------------------
+
+  /// Nombre completo: "Primer Apellido-Paterno Apellido-Materno"
+  String get fullName {
+    final parts = [
+      firstName,
+      if (lastNamePaternal != null && lastNamePaternal!.isNotEmpty)
+        lastNamePaternal!,
+      if (lastNameMaternal != null && lastNameMaternal!.isNotEmpty)
+        lastNameMaternal!,
+    ];
+    return parts.join(' ').trim();
+  }
+
+  // ----------------------------------------------------------
   // Conversión desde mapa de Supabase
   // ----------------------------------------------------------
 
   factory ProfileModel.fromMap(Map<String, dynamic> map) {
+    // Compatibilidad hacia atrás: perfiles creados antes de los campos de nombre
+    // separados solo tienen full_name. Derivamos firstName del primer token
+    // para que la app siga funcionando con perfiles antiguos.
+    final storedFirstName = map['first_name'] as String?;
+    final storedFullName = map['full_name'] as String? ?? '';
+    final firstName = (storedFirstName != null && storedFirstName.isNotEmpty)
+        ? storedFirstName
+        : storedFullName.split(' ').first;
+
     return ProfileModel(
       id: map['id'] as String,
-      fullName: map['full_name'] as String? ?? '',
+      firstName: firstName,
+      lastNamePaternal: map['last_name_paternal'] as String?,
+      lastNameMaternal: map['last_name_maternal'] as String?,
       rut: map['rut'] as String? ?? '',
       avatarUrl: map['avatar_url'] as String?,
       accountType: map['account_type'] as String? ?? 'personal',
       phone: map['phone'] as String?,
-      alias: map['alias'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
       showEmail: map['show_email'] as bool? ?? false,
@@ -84,21 +111,24 @@ class ProfileModel {
   // ----------------------------------------------------------
 
   ProfileModel copyWith({
-    String? fullName,
+    String? firstName,
+    String? lastNamePaternal,
+    String? lastNameMaternal,
     String? avatarUrl,
-    String? alias,
+    String? phone,
     bool? showEmail,
     bool? showPhone,
     bool? showPosts,
   }) {
     return ProfileModel(
       id: id,
-      fullName: fullName ?? this.fullName,
+      firstName: firstName ?? this.firstName,
+      lastNamePaternal: lastNamePaternal ?? this.lastNamePaternal,
+      lastNameMaternal: lastNameMaternal ?? this.lastNameMaternal,
       rut: rut,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       accountType: accountType,
-      phone: phone,
-      alias: alias ?? this.alias,
+      phone: phone ?? this.phone,
       createdAt: createdAt,
       showEmail: showEmail ?? this.showEmail,
       showPhone: showPhone ?? this.showPhone,
@@ -114,7 +144,6 @@ class ProfileModel {
 // Estadísticas de publicaciones del usuario
 // ============================================================
 
-/// Contadores de publicaciones del usuario en cada módulo
 class ProfileStats {
   final int jobCount;
   final int academicCount;

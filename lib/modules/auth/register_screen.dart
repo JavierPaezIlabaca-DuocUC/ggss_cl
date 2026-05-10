@@ -4,18 +4,18 @@
 //
 // Campos:
 //   - Tipo de cuenta (Personal / Empresa) — tarjetas seleccionables
-//   - Nombre completo
+//   - Primer nombre, Apellido paterno, Apellido materno
 //   - RUT chileno (con validación Módulo 11)
 //   - Teléfono con prefijo +569 fijo (8 dígitos, obligatorio)
 //   - Correo electrónico
 //   - Contraseña (con toggle de visibilidad)
 //   - Confirmar contraseña (con toggle de visibilidad)
-//   - Alias público (opcional)
 //
 // Todos los campos obligatorios se validan antes de enviar.
 // Autenticación real con Supabase Auth via AuthNotifier.
 // ============================================================
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,14 +45,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // Controladores de campos
   // ----------------------------------------------------------
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
+
+  // Nombre: tres campos separados
+  final _firstNameController = TextEditingController();
+  final _lastNamePaternalController = TextEditingController();
+  final _lastNameMaternalController = TextEditingController();
+
   final _rutController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _confirmEmailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _aliasController = TextEditingController();
+
+  // DEPRECATED: alias system - kept for potential future use
+  // final _aliasController = TextEditingController();
 
   // Tipo de cuenta seleccionado: 'personal' o 'empresa'
   String _accountType = 'personal';
@@ -66,14 +73,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // ----------------------------------------------------------
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNamePaternalController.dispose();
+    _lastNameMaternalController.dispose();
     _rutController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _confirmEmailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _aliasController.dispose();
     super.dispose();
   }
 
@@ -101,17 +109,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final phoneCompleto =
         '+569${_phoneController.text.replaceAll(' ', '').trim()}';
 
+    // Nombre completo: primer nombre + apellido paterno + materno
+    final firstName = _firstNameController.text.trim();
+    final lastNamePaternal = _lastNamePaternalController.text.trim();
+    final lastNameMaternal = _lastNameMaternalController.text.trim();
+    final fullName = [
+      firstName,
+      if (lastNamePaternal.isNotEmpty) lastNamePaternal,
+      if (lastNameMaternal.isNotEmpty) lastNameMaternal,
+    ].join(' ');
+
     // Delegar el registro al AuthNotifier
     await ref.read(authNotifierProvider.notifier).signUp(
           email: _emailController.text,
           password: _passwordController.text,
-          fullName: _fullNameController.text,
+          fullName: fullName,
           rut: rutFormateado,
           accountType: _accountType,
           phone: phoneCompleto,
-          alias: _aliasController.text.trim().isEmpty
-              ? null
-              : _aliasController.text.trim(),
+          firstName: firstName,
+          lastNamePaternal: lastNamePaternal.isEmpty ? null : lastNamePaternal,
+          lastNameMaternal: lastNameMaternal.isEmpty ? null : lastNameMaternal,
         );
   }
 
@@ -225,17 +243,72 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                     const SizedBox(height: AppDimensions.spacingMd),
 
-                    // Campo: nombre completo
+                    // Campo: primer nombre
                     TextFormField(
-                      controller: _fullNameController,
+                      controller: _firstNameController,
+                      enabled: !authState.isLoading,
                       keyboardType: TextInputType.name,
                       textInputAction: TextInputAction.next,
                       textCapitalization: TextCapitalization.words,
-                      validator: Validators.validateFullName,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'El primer nombre es requerido.';
+                        }
+                        return null;
+                      },
                       decoration: const InputDecoration(
-                        labelText: AppStrings.authFullName,
-                        hintText: AppStrings.authFullNameHint,
+                        labelText: 'Primer nombre *',
+                        hintText: 'Ej: Juan',
                         prefixIcon: Icon(Icons.person_outlined),
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // Texto informativo debajo del campo de primer nombre
+                    Text(
+                      'Solo tu primer nombre será visible públicamente.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.textTheme.bodySmall?.color
+                            ?.withValues(alpha: 0.6),
+                      ),
+                    ),
+
+                    const SizedBox(height: AppDimensions.spacingMd),
+
+                    // Campo: apellido paterno
+                    TextFormField(
+                      controller: _lastNamePaternalController,
+                      enabled: !authState.isLoading,
+                      keyboardType: TextInputType.name,
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'El apellido paterno es requerido.';
+                        }
+                        return null;
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Apellido paterno *',
+                        hintText: 'Ej: Pérez',
+                        prefixIcon: Icon(Icons.badge_outlined),
+                      ),
+                    ),
+
+                    const SizedBox(height: AppDimensions.spacingMd),
+
+                    // Campo: apellido materno (opcional)
+                    TextFormField(
+                      controller: _lastNameMaternalController,
+                      enabled: !authState.isLoading,
+                      keyboardType: TextInputType.name,
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        labelText: 'Apellido materno (opcional)',
+                        hintText: 'Ej: González',
+                        prefixIcon: Icon(Icons.badge_outlined),
                       ),
                     ),
 
@@ -244,6 +317,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Campo: RUT chileno con formato automático en tiempo real
                     TextFormField(
                       controller: _rutController,
+                      enabled: !authState.isLoading,
                       keyboardType: TextInputType.text,
                       textInputAction: TextInputAction.next,
                       inputFormatters: [_RutInputFormatter()],
@@ -261,6 +335,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Campo: teléfono con prefijo +569 fijo y formato automático
                     TextFormField(
                       controller: _phoneController,
+                      enabled: !authState.isLoading,
                       keyboardType: TextInputType.number,
                       textInputAction: TextInputAction.next,
                       inputFormatters: [PhoneDigitsFormatter()],
@@ -285,6 +360,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Campo: correo electrónico
                     TextFormField(
                       controller: _emailController,
+                      enabled: !authState.isLoading,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autocorrect: false,
@@ -302,6 +378,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Campo: confirmar correo electrónico
                     TextFormField(
                       controller: _confirmEmailController,
+                      enabled: !authState.isLoading,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autocorrect: false,
@@ -329,6 +406,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       label: AppStrings.authPassword,
                       hint: AppStrings.authPasswordHint,
                       controller: _passwordController,
+                      enabled: !authState.isLoading,
                       validator: Validators.validateStrongPassword,
                       textInputAction: TextInputAction.next,
                     ),
@@ -345,29 +423,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       label: AppStrings.authConfirmPassword,
                       hint: AppStrings.authConfirmPasswordHint,
                       controller: _confirmPasswordController,
+                      enabled: !authState.isLoading,
                       validator: (value) =>
                           Validators.validateConfirmPassword(
                         value,
                         _passwordController.text,
                       ),
-                      textInputAction: TextInputAction.next,
-                    ),
-
-                    const SizedBox(height: AppDimensions.spacingMd),
-
-                    // Campo: alias público (opcional)
-                    TextFormField(
-                      controller: _aliasController,
-                      keyboardType: TextInputType.text,
                       textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _submit(),
-                      validator: Validators.validateAlias,
-                      decoration: const InputDecoration(
-                        labelText: AppStrings.authAlias,
-                        hintText: AppStrings.authAliasHint,
-                        helperText: AppStrings.authAliasHelper,
-                        prefixIcon: Icon(Icons.alternate_email),
-                      ),
+                      onSubmitted: _submit,
                     ),
 
                     const SizedBox(height: AppDimensions.spacingMd),
@@ -403,14 +466,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     if (_termsErrorVisible) ...[
                       const SizedBox(height: 4),
                       Padding(
-                        padding:
-                            const EdgeInsets.only(left: 12),
+                        padding: const EdgeInsets.only(left: 12),
                         child: Text(
                           'Debes aceptar los términos y condiciones para continuar.',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.error,
-                                  ),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.error,
+                          ),
                         ),
                       ),
                     ],
@@ -768,9 +829,11 @@ class _LoadingButtonContent extends StatelessWidget {
 
 // ============================================================
 // Checkbox de términos y condiciones
+// Fix 2: texto uniforme usando TextSpan + TapGestureRecognizer
+// para evitar inconsistencias de tamaño con WidgetSpan.
 // ============================================================
 
-/// Fila con checkbox y enlace a TermsScreen
+/// Fila con checkbox y texto de términos (con enlace) en tamaño uniforme
 class _TermsCheckbox extends StatelessWidget {
   final bool value;
   final bool enabled;
@@ -785,6 +848,8 @@ class _TermsCheckbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final baseStyle = theme.textTheme.bodySmall;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -795,31 +860,28 @@ class _TermsCheckbox extends StatelessWidget {
           visualDensity: VisualDensity.compact,
         ),
         Expanded(
-          child: Text.rich(
-            TextSpan(
+          child: RichText(
+            text: TextSpan(
               text: 'Acepto los ',
-              style: theme.textTheme.bodySmall,
+              style: baseStyle,
               children: [
-                WidgetSpan(
-                  alignment: PlaceholderAlignment.baseline,
-                  baseline: TextBaseline.alphabetic,
-                  child: GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const TermsScreen(),
-                      ),
-                    ),
-                    child: Text(
-                      'términos y condiciones',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.primaryBlue,
-                        decoration: TextDecoration.underline,
-                        decorationColor: AppColors.primaryBlue,
-                      ),
-                    ),
+                TextSpan(
+                  text: 'términos y condiciones',
+                  style: baseStyle?.copyWith(
+                    color: AppColors.primaryBlue,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.primaryBlue,
+                    fontWeight: FontWeight.w500,
                   ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TermsScreen(),
+                          ),
+                        ),
                 ),
+                TextSpan(text: ' de GGSS.cl', style: baseStyle),
               ],
             ),
           ),

@@ -45,6 +45,9 @@ class PasswordTextField extends StatefulWidget {
   /// Callback al presionar el botón de enviar del teclado
   final VoidCallback? onSubmitted;
 
+  /// Si es false, el campo aparece deshabilitado (no editable ni tappeable)
+  final bool enabled;
+
   const PasswordTextField({
     super.key,
     required this.label,
@@ -52,6 +55,7 @@ class PasswordTextField extends StatefulWidget {
     this.hint,
     this.validator,
     this.readOnly = false,
+    this.enabled = true,
     this.textInputAction = TextInputAction.done,
     this.onSubmitted,
   });
@@ -71,6 +75,7 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
       controller: widget.controller,
       obscureText: _obscureText,
       readOnly: widget.readOnly,
+      enabled: widget.enabled,
       textInputAction: widget.textInputAction,
       validator: widget.validator,
       onFieldSubmitted:

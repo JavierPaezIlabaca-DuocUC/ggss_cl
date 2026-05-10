@@ -108,7 +108,7 @@ class AcademicDetailScreen extends ConsumerWidget {
             // Autor de la publicación (tappeable → perfil público)
             // --------------------------------------------------
             _AuthorRow(
-              authorLabel: offer.authorAlias ??
+              authorLabel: offer.authorFirstName ??
                   offer.authorName ??
                   AppStrings.forumAnonymous,
               userId: offer.createdBy,

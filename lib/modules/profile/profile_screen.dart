@@ -63,21 +63,21 @@ class ProfileScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // --------------------------------------------------
-              // Avatar con iniciales
+              // Avatar con iniciales del primer nombre o nombre completo
               // --------------------------------------------------
               _ProfileAvatar(
-                displayName: profile?.alias ?? profile?.fullName,
+                displayName: profile?.firstName ?? profile?.fullName,
                 avatarUrl: profile?.avatarUrl,
               ),
 
               const SizedBox(height: 16),
 
               // --------------------------------------------------
-              // Alias (nombre principal, prominente)
+              // Primer nombre (nombre de visualización, prominente)
               // --------------------------------------------------
               Text(
-                profile?.alias?.isNotEmpty == true
-                    ? profile!.alias!
+                profile?.firstName.isNotEmpty == true
+                    ? profile!.firstName
                     : (profile?.fullName.isNotEmpty == true
                         ? profile!.fullName
                         : 'Usuario'),
@@ -88,11 +88,9 @@ class ProfileScreen extends ConsumerWidget {
               ),
 
               // --------------------------------------------------
-              // Nombre completo real (solo en el perfil propio,
-              // debajo del alias en texto gris más pequeño)
+              // Nombre completo real (debajo en texto gris más pequeño)
               // --------------------------------------------------
-              if (profile?.alias?.isNotEmpty == true &&
-                  profile?.fullName.isNotEmpty == true) ...[
+              if (profile?.fullName.isNotEmpty == true) ...[
                 const SizedBox(height: 4),
                 Text(
                   profile!.fullName,

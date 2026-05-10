@@ -64,7 +64,8 @@ class AuthService {
     required String rut,
     String accountType = 'personal',
     String? phone,
-    String? alias,
+    // DEPRECATED: alias - kept for potential future use
+    // String? alias,
   }) async {
     final response = await _client.auth.signUp(
       email: email.trim(),
@@ -74,7 +75,6 @@ class AuthService {
         'rut': rut.trim(),
         'account_type': accountType,
         if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
-        if (alias != null && alias.trim().isNotEmpty) 'alias': alias.trim(),
       },
       // URL de redirección: Edge Function que funciona desde cualquier
       // dispositivo/navegador y redirige a ggss://app en móvil.

@@ -4,7 +4,7 @@
 // Recibe un [userId] y muestra su información pública aplicando
 // las reglas de privacidad configuradas por el usuario.
 //
-// Siempre visible: alias, tipo de cuenta, fecha de ingreso.
+// Siempre visible: primer nombre, tipo de cuenta, fecha de ingreso.
 // Condicional (cuenta personal): teléfono si show_phone=true,
 //   estadísticas si show_posts=true.
 // Cuenta empresa: siempre muestra toda la información pública.
@@ -95,18 +95,18 @@ class _PublicProfileBody extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // --------------------------------------------------
-          // Avatar con iniciales del alias
+          // Avatar con iniciales del primer nombre
           // --------------------------------------------------
-          _PublicAvatar(alias: profile.alias, fullName: profile.fullName),
+          _PublicAvatar(firstName: profile.firstName, fullName: profile.fullName),
 
           const SizedBox(height: 16),
 
           // --------------------------------------------------
-          // Alias público (nombre principal en perfil público)
+          // Primer nombre (nombre de visualización pública)
           // --------------------------------------------------
           Text(
-            profile.alias?.isNotEmpty == true
-                ? profile.alias!
+            profile.firstName.isNotEmpty
+                ? profile.firstName
                 : AppStrings.publicProfileNoAlias,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
@@ -227,18 +227,18 @@ class _PublicProfileBody extends ConsumerWidget {
 }
 
 // ============================================================
-// Widget: avatar con iniciales del alias (o nombre si no hay alias)
+// Widget: avatar con iniciales del primer nombre (o nombre completo si no hay)
 // ============================================================
 
 class _PublicAvatar extends StatelessWidget {
-  final String? alias;
+  final String? firstName;
   final String fullName;
 
-  const _PublicAvatar({required this.alias, required this.fullName});
+  const _PublicAvatar({required this.firstName, required this.fullName});
 
   @override
   Widget build(BuildContext context) {
-    final initials = _obtenerIniciales(alias ?? fullName);
+    final initials = _obtenerIniciales(firstName ?? fullName);
 
     return CircleAvatar(
       radius: 44,

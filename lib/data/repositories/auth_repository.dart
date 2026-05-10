@@ -62,7 +62,11 @@ class AuthRepository {
     required String rut,
     String accountType = 'personal',
     String? phone,
-    String? alias,
+    String? firstName,
+    String? lastNamePaternal,
+    String? lastNameMaternal,
+    // DEPRECATED: alias - kept for potential future use
+    // String? alias,
   }) async {
     final response = await _authService.signUpWithEmailAndPassword(
       email: email,
@@ -71,12 +75,9 @@ class AuthRepository {
       rut: rut,
       accountType: accountType,
       phone: phone,
-      alias: alias,
     );
 
     // Verificar unicidad del RUT antes de crear el perfil.
-    // Si el RUT ya existe, lanzar excepción (el usuario auth quedará sin perfil
-    // pero el constraint en BD también lo bloqueará en el siguiente intento).
     if (response.user != null) {
       final existing = await SupabaseClientProvider.client
           .from('profiles')
@@ -90,7 +91,6 @@ class AuthRepository {
     }
 
     // Crear perfil en 'profiles' si el usuario fue creado correctamente.
-    // El error se ignora: si falla, ProfileScreen lo creará al cargar.
     if (response.user != null) {
       try {
         await _profileService.createProfileIfNotExists(
@@ -99,7 +99,9 @@ class AuthRepository {
           rut,
           accountType: accountType,
           phone: phone,
-          alias: alias,
+          firstName: firstName,
+          lastNamePaternal: lastNamePaternal,
+          lastNameMaternal: lastNameMaternal,
         );
       } catch (_) {
         // Fallo silencioso — el perfil se creará en la primera visita al módulo

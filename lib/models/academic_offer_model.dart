@@ -21,8 +21,11 @@ class AcademicOfferModel {
   /// Nombre del autor (desde join con tabla profiles vía created_by)
   final String? authorName;
 
-  /// Alias público del autor (mostrado en lugar de authorName si está disponible)
-  final String? authorAlias;
+  /// Primer nombre del autor para visualización pública
+  final String? authorFirstName;
+
+  // DEPRECATED: alias system - kept for potential future use
+  // final String? authorAlias;
 
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -40,7 +43,7 @@ class AcademicOfferModel {
     this.url,
     required this.createdBy,
     this.authorName,
-    this.authorAlias,
+    this.authorFirstName,
     required this.createdAt,
     this.updatedAt,
   });
@@ -63,7 +66,7 @@ class AcademicOfferModel {
       url: map['url'] as String?,
       createdBy: map['created_by'] as String? ?? '',
       authorName: profiles?['full_name'] as String?,
-      authorAlias: profiles?['alias'] as String?,
+      authorFirstName: profiles?['first_name'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
       updatedAt: map['updated_at'] != null

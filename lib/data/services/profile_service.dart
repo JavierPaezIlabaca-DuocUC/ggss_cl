@@ -2,17 +2,11 @@
 // profile_service.dart
 // Servicio de perfil de usuario — operaciones CRUD contra
 // la tabla 'profiles' en Supabase.
-//
-// La tabla 'profiles' tiene columnas:
-//   id (UUID), full_name, rut, avatar_url, account_type,
-//   phone, alias, show_email, show_phone, show_posts,
-//   created_at, updated_at
 // ============================================================
 
 import '../../models/profile_model.dart';
 import '../supabase/supabase_client.dart';
 
-/// Nombre de la tabla de perfiles en Supabase
 const String _tableProfiles = 'profiles';
 
 /// Servicio de perfil de usuario de GGSS.cl
@@ -23,7 +17,6 @@ class ProfileService {
   // Obtener perfil
   // ----------------------------------------------------------
 
-  /// Retorna el perfil del usuario con [userId], o null si no existe.
   Future<ProfileModel?> getProfile(String userId) async {
     final response = await _client
         .from(_tableProfiles)
@@ -35,13 +28,78 @@ class ProfileService {
   }
 
   // ----------------------------------------------------------
-  // Actualizar perfil
+  // Crear perfil si no existe (llamado tras registro exitoso)
   // ----------------------------------------------------------
 
-  /// Actualiza el nombre completo del usuario con [userId].
-  Future<void> updateProfile(String userId, String fullName) async {
+  Future<void> createProfileIfNotExists(
+    String userId,
+    String fullName,
+    String rut, {
+    String accountType = 'personal',
+    String? phone,
+    // DEPRECATED: alias - kept for potential future use
+    // String? alias,
+    String? firstName,
+    String? lastNamePaternal,
+    String? lastNameMaternal,
+  }) async {
+    await _client.from(_tableProfiles).upsert(
+      {
+        'id': userId,
+        'full_name': fullName.trim(),
+        'rut': rut.trim(),
+        'account_type': accountType,
+        if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
+        if (firstName != null && firstName.isNotEmpty)
+          'first_name': firstName.trim(),
+        if (lastNamePaternal != null && lastNamePaternal.isNotEmpty)
+          'last_name_paternal': lastNamePaternal.trim(),
+        if (lastNameMaternal != null && lastNameMaternal.isNotEmpty)
+          'last_name_maternal': lastNameMaternal.trim(),
+      },
+      ignoreDuplicates: true,
+    );
+  }
+
+  // ----------------------------------------------------------
+  // Actualizar campos de nombre
+  // ----------------------------------------------------------
+
+  Future<void> updateNameFields(
+    String userId, {
+    required String firstName,
+    String? lastNamePaternal,
+    String? lastNameMaternal,
+  }) async {
+    final fullName = [
+      firstName,
+      if (lastNamePaternal != null && lastNamePaternal.isNotEmpty)
+        lastNamePaternal,
+      if (lastNameMaternal != null && lastNameMaternal.isNotEmpty)
+        lastNameMaternal,
+    ].join(' ').trim();
+
     await _client.from(_tableProfiles).update({
-      'full_name': fullName.trim(),
+      'first_name': firstName.trim(),
+      'last_name_paternal': (lastNamePaternal != null &&
+              lastNamePaternal.isNotEmpty)
+          ? lastNamePaternal.trim()
+          : null,
+      'last_name_maternal':
+          (lastNameMaternal != null && lastNameMaternal.isNotEmpty)
+              ? lastNameMaternal.trim()
+              : null,
+      'full_name': fullName, // keep in sync for backward compat
+    }).eq('id', userId);
+  }
+
+  // ----------------------------------------------------------
+  // Actualizar teléfono
+  // ----------------------------------------------------------
+
+  Future<void> updatePhone(String userId, String? phone) async {
+    await _client.from(_tableProfiles).update({
+      'phone': (phone != null && phone.isNotEmpty) ? phone.trim() : null,
     }).eq('id', userId);
   }
 
@@ -49,8 +107,6 @@ class ProfileService {
   // Actualizar configuración de privacidad
   // ----------------------------------------------------------
 
-  /// Actualiza las preferencias de privacidad del usuario con [userId].
-  /// Solo aplica visualmente para cuentas personales (ver PublicProfileScreen).
   Future<void> updatePrivacySettings(
     String userId, {
     required bool showEmail,
@@ -65,37 +121,19 @@ class ProfileService {
   }
 
   // ----------------------------------------------------------
-  // Crear perfil si no existe (llamado tras registro exitoso)
+  // updateProfile: mantenido para compatibilidad hacia atrás
   // ----------------------------------------------------------
 
-  /// Inserta un perfil si aún no existe.
-  /// Usa upsert con ignoreDuplicates para evitar sobrescribir un perfil existente.
-  Future<void> createProfileIfNotExists(
-    String userId,
-    String fullName,
-    String rut, {
-    String accountType = 'personal',
-    String? phone,
-    String? alias,
-  }) async {
-    await _client.from(_tableProfiles).upsert(
-      {
-        'id': userId,
-        'full_name': fullName.trim(),
-        'rut': rut.trim(),
-        'account_type': accountType,
-        if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
-        if (alias != null && alias.trim().isNotEmpty) 'alias': alias.trim(),
-      },
-      ignoreDuplicates: true,
-    );
+  Future<void> updateProfile(String userId, String fullName) async {
+    await _client.from(_tableProfiles).update({
+      'full_name': fullName.trim(),
+    }).eq('id', userId);
   }
 
   // ----------------------------------------------------------
   // Estadísticas de publicaciones del usuario
   // ----------------------------------------------------------
 
-  /// Retorna el número de ofertas laborales publicadas por [userId].
   Future<int> countJobOffers(String userId) async {
     final rows = await _client
         .from('job_offers')
@@ -104,7 +142,6 @@ class ProfileService {
     return (rows as List).length;
   }
 
-  /// Retorna el número de ofertas académicas publicadas por [userId].
   Future<int> countAcademicOffers(String userId) async {
     final rows = await _client
         .from('academic_offers')
@@ -113,7 +150,6 @@ class ProfileService {
     return (rows as List).length;
   }
 
-  /// Retorna el número de publicaciones del foro creadas por [userId].
   Future<int> countForumPosts(String userId) async {
     final rows = await _client
         .from('forum_posts')
@@ -122,7 +158,6 @@ class ProfileService {
     return (rows as List).length;
   }
 
-  /// Obtiene las tres estadísticas de publicaciones del usuario en paralelo.
   Future<ProfileStats> fetchStats(String userId) async {
     final results = await Future.wait([
       countJobOffers(userId),

@@ -107,7 +107,7 @@ class JobDetailScreen extends ConsumerWidget {
             // --------------------------------------------------
             _AuthorRow(
               authorLabel:
-                  job.authorAlias ?? job.authorName ?? AppStrings.forumAnonymous,
+                  job.authorFirstName ?? job.authorName ?? AppStrings.forumAnonymous,
               userId: job.createdBy,
             ),
 

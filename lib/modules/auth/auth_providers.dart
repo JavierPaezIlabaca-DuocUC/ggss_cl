@@ -150,7 +150,11 @@ class AuthNotifier extends StateNotifier<AuthFormState> {
     required String rut,
     String accountType = 'personal',
     String? phone,
-    String? alias,
+    String? firstName,
+    String? lastNamePaternal,
+    String? lastNameMaternal,
+    // DEPRECATED: alias - kept for potential future use
+    // String? alias,
   }) async {
     state = const AuthFormState(status: AuthFormStatus.loading);
 
@@ -162,7 +166,9 @@ class AuthNotifier extends StateNotifier<AuthFormState> {
         rut: rut,
         accountType: accountType,
         phone: phone,
-        alias: alias,
+        firstName: firstName,
+        lastNamePaternal: lastNamePaternal,
+        lastNameMaternal: lastNameMaternal,
       );
       state = const AuthFormState(status: AuthFormStatus.success);
     } on RutAlreadyExistsException {

@@ -25,7 +25,7 @@ class ForumPostCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final authorLabel =
-        post.authorAlias ?? post.authorName ?? AppStrings.forumAnonymous;
+        post.authorFirstName ?? post.authorName ?? AppStrings.forumAnonymous;
 
     return Card(
       child: InkWell(

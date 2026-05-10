@@ -18,8 +18,11 @@ class ForumPostModel {
   /// Nombre del autor (desde join con tabla profiles)
   final String? authorName;
 
-  /// Alias público del autor (mostrado en lugar de authorName si está disponible)
-  final String? authorAlias;
+  /// Primer nombre del autor para visualización pública
+  final String? authorFirstName;
+
+  // DEPRECATED: alias system - kept for potential future use
+  // final String? authorAlias;
 
   /// URL del avatar del autor
   final String? authorAvatarUrl;
@@ -36,7 +39,7 @@ class ForumPostModel {
     this.category,
     required this.userId,
     this.authorName,
-    this.authorAlias,
+    this.authorFirstName,
     this.authorAvatarUrl,
     required this.createdAt,
     this.commentCount = 0,
@@ -63,7 +66,7 @@ class ForumPostModel {
       category: map['category'] as String?,
       userId: map['created_by'] as String? ?? '',
       authorName: profiles?['full_name'] as String?,
-      authorAlias: profiles?['alias'] as String?,
+      authorFirstName: profiles?['first_name'] as String?,
       authorAvatarUrl: profiles?['avatar_url'] as String?,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),

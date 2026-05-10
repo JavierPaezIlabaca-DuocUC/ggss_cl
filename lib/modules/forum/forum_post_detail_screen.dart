@@ -251,7 +251,7 @@ class _ForumPostDetailScreenState
                         }
                       },
                       child: Text(
-                        widget.post.authorAlias ??
+                        widget.post.authorFirstName ??
                             widget.post.authorName ??
                             AppStrings.forumAnonymous,
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -436,7 +436,7 @@ class _CommentItem extends StatelessWidget {
             backgroundColor:
                 theme.colorScheme.primary.withValues(alpha: 0.15),
             child: Text(
-              (comment.authorAlias ??
+              (comment.authorFirstName ??
                       comment.authorName ??
                       AppStrings.forumAnonymous)
                   .substring(0, 1)
@@ -466,7 +466,7 @@ class _CommentItem extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        comment.authorAlias ??
+                        comment.authorFirstName ??
                             comment.authorName ??
                             AppStrings.forumAnonymous,
                         style: theme.textTheme.labelMedium?.copyWith(
