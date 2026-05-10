@@ -1,6 +1,9 @@
 // ============================================================
 // news_item_model.dart
-// Modelo de noticia obtenida desde Google Custom Search API.
+// Modelo de noticia de GGSS.cl.
+// Soporta dos fuentes de datos:
+//   - fromGoogleSearchResult: Google Custom Search API (legado)
+//   - fromRssJson: Edge Function news-proxy (Google News RSS)
 // ============================================================
 
 /// Modelo de noticia de GGSS.cl
@@ -67,6 +70,53 @@ class NewsItemModel {
       snippet: map['snippet'] as String? ?? '',
       url: link,
       imageUrl: imageUrl,
+      source: source,
+      publishedDate: publishedDate,
+    );
+  }
+
+  // ----------------------------------------------------------
+  // Conversión desde respuesta JSON del Edge Function news-proxy
+  // ----------------------------------------------------------
+
+  /// Crea un [NewsItemModel] desde el JSON devuelto por la Edge Function
+  /// `news-proxy` (Google News RSS).
+  ///
+  /// Estructura esperada:
+  /// ```json
+  /// {
+  ///   "title": "...",
+  ///   "description": "texto plano sin HTML",
+  ///   "url": "https://...",
+  ///   "publishedAt": "2025-01-12T10:00:00.000Z",
+  ///   "source": "La Tercera"
+  /// }
+  /// ```
+  factory NewsItemModel.fromRssJson(Map<String, dynamic> map) {
+    // Extraer y parsear fecha ISO 8601 (puede ser null)
+    DateTime? publishedDate;
+    final rawDate = map['publishedAt'] as String?;
+    if (rawDate != null && rawDate.isNotEmpty) {
+      publishedDate = DateTime.tryParse(rawDate);
+    }
+
+    // Determinar fuente: usar el tag <source> del RSS o,
+    // como respaldo, extraer el dominio de la URL
+    String source = map['source'] as String? ?? '';
+    if (source.isEmpty) {
+      final url = map['url'] as String? ?? '';
+      try {
+        source = Uri.parse(url).host.replaceFirst('www.', '');
+      } catch (_) {
+        source = '';
+      }
+    }
+
+    return NewsItemModel(
+      title: map['title'] as String? ?? '',
+      snippet: map['description'] as String? ?? '',
+      url: map['url'] as String? ?? '',
+      imageUrl: null, // Google News RSS no incluye imágenes
       source: source,
       publishedDate: publishedDate,
     );
