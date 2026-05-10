@@ -48,6 +48,12 @@ app.*.map.json
 # Este archivo NO debe subirse al repositorio
 CLAUDE.md
 
+# Claude Code settings (may contain API keys)
+.claude/settings.local.json
+
+# Flutter build logs
+flutter_log.txt
+
 # Variables de entorno locales
 .env
 .env.local
